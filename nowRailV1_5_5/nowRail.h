@@ -1,5 +1,5 @@
-/* nowRailV1_5_0
-  29/11/25
+/* nowRailV1_5_5
+  15/12/25
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -495,8 +495,8 @@ extern "C" {
   extern void nowClockSpeedUpdate(void) __attribute__((weak));//clock speed updates
   extern void nowLocoFuncUpdate(int nowLocoID, byte nowFuncNum, byte nowFuncState) __attribute__((weak));//receives loco function updates..for updating controllers
   extern void nowLocoSpeedUpdate(int locoAddr, byte locoSpeed, byte locoDir) __attribute__((weak));//receives loco function updates..for updating controllers
-  extern void nowLocoDataSetRX(void); //calls custom function when loco data transmitted
-  extern void nowLocoBulkDataRX(void); //called when a bulk data upload has finished
+  extern void nowLocoDataSetRX(void) __attribute__((weak)); //calls custom function when loco data transmitted
+  extern void nowLocoBulkDataRX(void) __attribute__((weak)); //called when a bulk data upload has finished
 #if defined(__cplusplus)
 }
 #endif

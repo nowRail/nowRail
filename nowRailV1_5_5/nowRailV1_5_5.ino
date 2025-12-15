@@ -1,5 +1,11 @@
-/* nowRailV1_5_0
-  29/11/25
+/* nowRailV1_5_5
+  15/12/25
+
+1.5.5 bug fix
+The following functions can now be deleted in customFunctions.ino without causing an error when compiling
+void nowLocoBulkDataRX()
+void nowLocoDataSetRX()
+
 MIT License
 Copyright (c) 2025 Simon Coward
 Copyright (c) 2025 Digital Town
