@@ -1,5 +1,5 @@
-/* nowRailV1_5_5
-  15/12/25
+/*nowRailV1_6_0
+20/12/2025
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -20,8 +20,8 @@
 #define TIMEARRAYCLOCKDAY 4
 
 //EEPROM
-#define EEPROMVERSION 1           //1 is time plus loco array 0 time only... found in byte 10
-#define EEPROMLOCODATASTART 1000  //1000 first pos of loco data
+#define EEPROMVERSION 1                //1 is time plus loco array 0 time only... found in byte 10
+#define EEPROMLOCODATASTART 1000       //1000 first pos of loco data
 #define EEPROMLOCORECALLDATASTART 100  //This array is the same size as the main loco array...200 bytes by default
 
 //Message Transmission...first 10 bytes are layout and board prefix
@@ -29,7 +29,7 @@
 #define MESSAGEHIGHID 11   //MessagHIGHID creates a high byte type situation to give greater than 256 message ID's
 #define MESSRESPONSE 12    //0 no response required  1 respond required 2 this is the response
 #define MESSTRANSCOUNT 13  //number of times message transmitted
-#define MESSAGETYPE 14     //0 TIMEUPDATE 1 ACCESSORYCOMMAND 
+#define MESSAGETYPE 14     //0 TIMEUPDATE 1 ACCESSORYCOMMAND \
                            //15 is spare
 
 //MESSRESPONSE Options
@@ -50,7 +50,11 @@
 #define LOCOBULKDATATX 10      //As above but part of 200 loco transmissions
 #define WIFICHANNELCMD 11      //WIFI channel change command
 #define SETMASTERCLOCKTIME 12  //Command that will only be processed by MASTERCLOCK,,, sets time and day
+#define RFIDDATA 13  //command that holds RFID data packet 
 
+//RFID data format byte 17 data length, bytes 18-47 carries data
+#define RFIDNUMBYTES 16
+#define RFIDDATASTART 17 //postion for start of RFID data
 //TIMEUPDATE Options
 #define MESSAGECLOCKSPEED 16
 #define MESSAGECLOCKHOUR 17
@@ -69,6 +73,8 @@
 #define LOCOADDRHIGH 18  //address high byte
 #define LOCOADDRLOW 19   //address low byte
 
+
+
 //DCCLOCOFUNCTION
 #define LOCOFUNC 16       //
 #define LOCOFUNCSTATE 17  //
@@ -79,7 +85,7 @@
 #define MESSAGECLOCKSPEED 16
 
 //LAYOUTPOWERCOMMANDS
-#define POWERCOMMAND 20 //changed from 16  1.2.2 for NCE power cab issues
+#define POWERCOMMAND 20  //changed from 16  1.2.2 for NCE power cab issues
 //values for POWERCOMMAND
 #define TURNPOWEROFF 0
 #define TURNPOWERON 1
@@ -106,24 +112,25 @@
 #include "esp_now.h"
 
 
-
 class nowRail {
 public:
 
   nowRail(int addr1, int addr2, int addr3, int addr4);
-  String getnowRailAddr(); //function returns the current nowRail address of the board
-  void setnowRailAddr(byte element, int changeVal);//update the elemnt of address (0-3), by the amount changeVal
-  void init();                          //initialisation routine
-  void runLayout(void);                 //main control function, needs to be in main loop
+  String getnowRailAddr();                           //function returns the current nowRail address of the board
+  void setnowRailAddr(byte element, int changeVal);  //update the elemnt of address (0-3), by the amount changeVal
+  void init();                                       //initialisation routine
+  void runLayout(void);                              //main control function, needs to be in main loop
   //Masterclock
   byte rtcClockSpeed(void);
   byte rtcHours(void);
   byte rtcMinutes(void);
   byte rtcSeconds(void);
   byte rtcDays(void);
-  void sendClockSpeedChange(byte clockSpeed); //changes MASTERCLOCK speed
+  //1.5.4
+  void sendRFIDData(uint8_t rfidData[],uint8_t len);//Takes a data structure and the structures size.. max data 30 bytes
+  void sendClockSpeedChange(byte clockSpeed);  //changes MASTERCLOCK speed
   //1.5.0
-  void sendClockTimeChange(byte hour, byte mins, byte seconds, byte day);//updates MASTERCLOCK to specific time
+  void sendClockTimeChange(byte hour, byte mins, byte seconds, byte day);  //updates MASTERCLOCK to specific time
   //loco stuff
   int getLocoDCCAddress(byte locoID);                   //gets DCC address from _locoData[200][32]
   byte getLocoDCCFuncState(byte locoID, byte funcNum);  //gets function state _locoData[200][32]
@@ -133,38 +140,45 @@ public:
   void setLocoDCCFuncState(byte locoID, byte funcNum, byte funcState);
   byte getLocoTXdataSetByte(byte item);
 
-  void locoReCallDataUpdate(byte theLoco, byte theLocoSpeed);//0.9 mod function that updates _locoReCallData[32] array 
-  byte locoReCallGetLocoID(byte ReCallPos);//0.9 gets locoID
-  byte locoReCallGetLocoSpeed(byte ReCallPos);//0.9 gets locoSpeed
+  void locoReCallDataUpdate(byte theLoco, byte theLocoSpeed);  //0.9 mod function that updates _locoReCallData[32] array
+  byte locoReCallGetLocoID(byte ReCallPos);                    //0.9 gets locoID
+  byte locoReCallGetLocoSpeed(byte ReCallPos);                 //0.9 gets locoSpeed
   //nowRail 1.2.0
-  byte locoGetConsistState(byte locoID);//results 0...no consist, 1...no consist, 2 consist FWD (normal direction), 3 consist rev direction
-  void locoSetConsistState(byte locoID,byte consistState);//0...no consist, 1...no consist, 2 consist FWD (normal direction), 3 consist rev direction
-  void locoTXLocoData(byte locoID);//sends a broadcast of all loco data to be picked up by another controller
-  void setLocoRXState(byte state, byte updateLocoID);//used to set the loco slot for incoming data
+  byte locoGetConsistState(byte locoID);                     //results 0...no consist, 1...no consist, 2 consist FWD (normal direction), 3 consist rev direction
+  void locoSetConsistState(byte locoID, byte consistState);  //0...no consist, 1...no consist, 2 consist FWD (normal direction), 3 consist rev direction
+  void locoTXLocoData(byte locoID);                          //sends a broadcast of all loco data to be picked up by another controller
+  void setLocoRXState(byte state, byte updateLocoID);        //used to set the loco slot for incoming data
   //nowrail 1.3.0
-  void locoTXAllLocoData(void);//transmits all 200 locos data
-  void locoRXAllLocoData(int state); //0 = 0ff, > 0 set to receive
+  void locoTXAllLocoData(void);       //transmits all 200 locos data
+  void locoRXAllLocoData(int state);  //0 = 0ff, > 0 set to receive
   //end locostuff
   //1.4.2... wifi stuff
-  void changeWifiChannel(byte newChannel);//will only accept values 1,6 and 11 Sends out a command to change the wifi channel
+  void changeWifiChannel(byte newChannel);  //will only accept values 1,6 and 11 Sends out a command to change the wifi channel
   //end 1.4.2
 #if defined(GT911)
+
+
+  struct TouchLocation {
+    uint16_t x;
+    uint16_t y;
+  };
+  TouchLocation touchLocations[5];
   void addGT911Screen(int GT911ResetPin, int GT911IntPin);
   void addGT911Button(int xPos, int yPos, int accNum, int press1, int press2);  //Adds std pin accessories to system
 #endif
-  void sendPowerCommand(byte Command,int dccAddr, byte dccSpeed, byte dccDir);                //sends commands to base stations/controllers  POWEROFF 0 POWERON 1 EMERGENCYSTOP 2
-  void addStdPanelLed(int pin, int accNum, int dir);  //Adds a panel LED connected directly to a board pin...pin goes HIGH when triggered
-  
+  void sendPowerCommand(byte Command, int dccAddr, byte dccSpeed, byte dccDir);  //sends commands to base stations/controllers  POWEROFF 0 POWERON 1 EMERGENCYSTOP 2
+  void addStdPanelLed(int pin, int accNum, int dir);                             //Adds a panel LED connected directly to a board pin...pin goes HIGH when triggered
+
   void accProcessed(byte processed);
   void sendDCCLocoFunc(byte locoID, int dccAddr, byte funcNum, byte funcState);
   void sendDCCLocoSpeed(int dccAddr, byte dccSpeed, byte dccDir);               //send DCC speed command
   void sendAccessoryCommand(int accNum, byte accInst, byte respReq);            //sends an accessory command
   void addStdPinButton(int pin, int accNum, int press1, int press2);            //adds standard pin buttons to system
   void addStdPinAcc(int pin, int accNum, int dir, int pulse, int setpinState);  //Adds std pin accessories to system
-  
-  void sendSensorUpdate(int senNum, byte senInst);//Sends a sensor update
+
+  void sendSensorUpdate(int senNum, byte senInst);  //Sends a sensor update
   void addStdPinSensor(int pin, int senNum);
-  
+
 
 #if defined(NUMCD4021CHIPS)
   void setupCD4021(int latchPin, int clockPin, int dataPin);                       // Sets up the pins
@@ -176,23 +190,23 @@ public:
   void add74HC595NPinAcc(int chip, int pin, int accNum, int dir, int pulse, int setpinState);  //Adds std pin accessories to system
   void add74HC595NPPanelLed(int chip, int pin, int accNum, int dir);                           //Adds a panel LED connected to 74HC595N
   //1.4.0 Mod
-  void set74HC595NPPinState(unsigned int chip, unsigned int pin, byte pinState); 
+  void set74HC595NPPinState(unsigned int chip, unsigned int pin, byte pinState);
 #endif
 #if defined(MAXPCA9685SERVOBOARDS)
-  void addPCA9685Servo(byte board, byte port, int accNum, int angle0, int angle1, int moveTime);//time added in 1.0.3
+  void addPCA9685Servo(byte board, byte port, int accNum, int angle0, int angle1, int moveTime);  //time added in 1.0.3
   //0_9_2 LED mods
-  void addPCA9685Led(byte board, byte port, int accNum, int dirOn, int effect, int maxBright, int effectBright);//dir)n = 0 or 1 to turn on, effect 0 = on/0ff, 1 = fire flicker, 2 = gas light, 3 = arc welder
+  void addPCA9685Led(byte board, byte port, int accNum, int dirOn, int effect, int maxBright, int effectBright);  //dir)n = 0 or 1 to turn on, effect 0 = on/0ff, 1 = fire flicker, 2 = gas light, 3 = arc welder
   //int _pca9685LEDS[MAXPCA9685SERVOBOARDS][7];//board, port, accNum,dirOn,effect Type, max brightness, effect brightness
   //panel leds
-  void addPCA9685PanelLed(byte board, byte port, int accNum, int dirOn, int effect, int maxBright); //panel led... efect on/off or flashing
+  void addPCA9685PanelLed(byte board, byte port, int accNum, int dirOn, int effect, int maxBright);  //panel led... efect on/off or flashing
 #endif
 
 #if defined(MP3BUSYPIN)
   //void addMP3PlayTrack(int accNum,int dirOn, int trackMin, int trackMax, int playType, int playInterval);//AccNumber, dir, track min, track max, (single, random, order), time interval bwteen plays, state
-  void addMP3PlayTrack(int accNum, int dirOn, int trackNum, int maxTrackNum, int mode);//mode 0 = play now, 1 = random//state is current play state 1 = play
-  void mp3PlayVolume(int vol);//sets the volume from default
-  
-  
+  void addMP3PlayTrack(int accNum, int dirOn, int trackNum, int maxTrackNum, int mode);  //mode 0 = play now, 1 = random//state is current play state 1 = play
+  void mp3PlayVolume(int vol);                                                           //sets the volume from default
+
+
 #endif
 
 private:
@@ -222,23 +236,18 @@ private:
 
   //Sensors
   unsigned long _sensorDebounceMillis;
-  void sensorEvents(void);    //go through sensors
-  int _stdPinSensors[50][3];  //pin, senNum, LastState
-  byte _stdPinSensorsCount;    //how mant Std pin sensors on board
-#if defined(WIFIMASTERCLOCKCHANGE)//auto wifi channel change
-byte _currentWIFIChannel = 1;
-unsigned long _lastWIFIMillis;
-unsigned long _lastWIFITimer = 5000;
+  void sensorEvents(void);          //go through sensors
+  int _stdPinSensors[50][3];        //pin, senNum, LastState
+  byte _stdPinSensorsCount;         //how mant Std pin sensors on board
+#if defined(WIFIMASTERCLOCKCHANGE)  //auto wifi channel change
+  byte _currentWIFIChannel = 1;
+  unsigned long _lastWIFIMillis;
+  unsigned long _lastWIFITimer = 5000;
 
 
 #endif
 
-//GT911 touch screen
-#if defined(GT911)
-  void GT911ProcessButtons(void);
-  int _GT911Buttons[GT911TOUCHBUTTONS][6];  //xpos xpos, accnum, press 1, press 2, buttonstate
-  int _GT911ButtonCount;
-#endif
+
 //CD4021 Shift Registers for buttons/sensors...system to work like _stdPinButtons
 #if defined(NUMCD4021CHIPS)
   int _CD4021PinButtons[NUMCD4021CHIPSNUMBUTTONS][6];  //allows for multiple triggers per pin)items> chip,pin,accid,press 1, press 2,buttonstate
@@ -249,7 +258,7 @@ unsigned long _lastWIFITimer = 5000;
   byte get4021Byte(int funcDataPin, int funcClockPin);  //gets the byte of data
   //CD4021 sensors
   int _CD4021PinSensors[NUMCD4021CHIPS * 8][4];  //chip, pin, senNum, LastState
-  int _CD4021SensorPinCount; //sensor pins added
+  int _CD4021SensorPinCount;                     //sensor pins added
 
 #endif
 #if defined(NUM74HC595NCHIPS)
@@ -268,23 +277,23 @@ unsigned long _lastWIFITimer = 5000;
 #endif
 //PCA9685Servos
 #if defined(MAXPCA9685SERVOBOARDS)
-  byte _pca9685Addresses[MAXPCA9685SERVOBOARDS][2];//0_9_2 mod 0 = address 1 = servo/0 led 1
+  byte _pca9685Addresses[MAXPCA9685SERVOBOARDS][2];  //0_9_2 mod 0 = address 1 = servo/0 led 1
   byte _pca9685AddressesCount;
-  int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][8];  //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion)
-  unsigned long _pca9685ServosMillis[MAXPCA9685SERVOBOARDS * 16];//stores last move time in milliseconds 1.0.3
+  int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][8];               //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion)
+  unsigned long _pca9685ServosMillis[MAXPCA9685SERVOBOARDS * 16];  //stores last move time in milliseconds 1.0.3
   int _pca9685ServoCount;
-  void pca9685ServoControl();//deals with servo movement in main loop
-  void setupPCA9685Board(byte boardAddress,byte boardType);//0_9_2 mods sets up servo boards, type 0 = servo, type 1 = led
+  void pca9685ServoControl();                                     //deals with servo movement in main loop
+  void setupPCA9685Board(byte boardAddress, byte boardType);      //0_9_2 mods sets up servo boards, type 0 = servo, type 1 = led
   void setPCA695Servo(byte boardAddress, byte port, byte angle);  //move servo to an angle
   //0_9_2 LED mods
-  unsigned long _pca9685LEDTimers[MAXPCA9685SERVOBOARDS * 16][2];//used for led flicker timings 0 = flicker time, 1 = wait interval
-  byte _pca9685LEDStates[MAXPCA9685SERVOBOARDS * 16][3];//current state, requested state values are 0 = OFF, 1 full brightness or  effect brightness, 2 effects state
-  int _pca9685LEDCount;//keeps track of number of leds
-  void pca9685LedControl(void);//controls all leds effects..turns on off
+  unsigned long _pca9685LEDTimers[MAXPCA9685SERVOBOARDS * 16][2];  //used for led flicker timings 0 = flicker time, 1 = wait interval
+  byte _pca9685LEDStates[MAXPCA9685SERVOBOARDS * 16][3];           //current state, requested state values are 0 = OFF, 1 full brightness or  effect brightness, 2 effects state
+  int _pca9685LEDCount;                                            //keeps track of number of leds
+  void pca9685LedControl(void);                                    //controls all leds effects..turns on off
   void setPCA695Led(byte boardAddress, byte port, int brightness);
-  int _pca9685LEDS[MAXPCA9685SERVOBOARDS * 16][7];//board, port, accNum, dirOn, effect, maxBright, effect bright ?? effects 0 = ON/Off, 1 = fire, 2 = gas, 3 = arc
+  int _pca9685LEDS[MAXPCA9685SERVOBOARDS * 16][7];  //board, port, accNum, dirOn, effect, maxBright, effect bright ?? effects 0 = ON/Off, 1 = fire, 2 = gas, 3 = arc
   //panel leds
-  int _pca9685PanelLEDS[MAXPCA9685SERVOBOARDS * 16][6];//board, port, accNum, dirOn, effect, maxBright
+  int _pca9685PanelLEDS[MAXPCA9685SERVOBOARDS * 16][6];  //board, port, accNum, dirOn, effect, maxBright
   int _pca9685PanelLEDCount;
   byte _pca9685PanelLEDStates[MAXPCA9685SERVOBOARDS * 16][3];
   unsigned long _pca9685PanelLEDTimers[MAXPCA9685SERVOBOARDS * 16];
@@ -300,24 +309,24 @@ unsigned long _lastWIFITimer = 5000;
 #endif
   void locoEEPROMUpdate(byte locoID);  //if eeprom is running will update the locoEEPROM date from locoData
   //Loco data system
-  byte _locoData[200][32];  //stores the loco data from eeprom
-  byte _locoReCallData[32][2];//0.9 modded     Stores the order of last 32 used locos, ID and speed  
+  byte _locoData[200][32];      //stores the loco data from eeprom
+  byte _locoReCallData[32][2];  //0.9 modded     Stores the order of last 32 used locos, ID and speed
   byte _locoReCallDataFlag;
-  byte _locoReCallPos;//works out position of next loco in recall array
+  byte _locoReCallPos;  //works out position of next loco in recall array
   unsigned long _locoReCallMillis;
-  byte _locoTXdataSet[32];//stores data when received for loco data change
-  byte _locoRXState[2];//0 = 0 or 1 = waiting tom receive [1] = locoID to be updated
+  byte _locoTXdataSet[32];  //stores data when received for loco data change
+  byte _locoRXState[2];     //0 = 0 or 1 = waiting tom receive [1] = locoID to be updated
 
   //bulk loco data transmission receive flags 1.3.0
-  byte _locoBulkDataRXFlag;//1 = waiting to receive data
-  byte _locoBulkDataRXPos;  //stores the array position 0-199
-  
+  byte _locoBulkDataRXFlag;  //1 = waiting to receive data
+  byte _locoBulkDataRXPos;   //stores the array position 0-199
+
   //Fifo buffers
   void checkRecFifo(void);
   byte recReadFifoCounter;
   // //Holds command to be sent out
   void checkSendFifo(void);
-  
+
   void incsendWriteFifoCounter(void);
   byte sendFifoBuffer[256][PACKETLENGTH];  //Way more than needed but better safe than sorry
   byte sendWriteFifoCounter;               //keeps track of current write position
@@ -349,18 +358,18 @@ unsigned long _lastWIFITimer = 5000;
   //0.5
   byte _badBits;  //counts bad bit timings and changes interrupt direction if needed
   byte _readDCCPosition;
-  
-  
-  
+
+
+
   byte _bitPartPos;
   int _bitParts[2];
   byte _bitReadPos;
   byte _bitPrintCounter;
   byte _bitCounter;
 
-  byte _interruptPhasePosition; //1.3.2
-  byte _currentInterruptPhasePosition;//1.3.2
-  unsigned long _dccMicros[2];//1.3.2
+  byte _interruptPhasePosition;         //1.3.2
+  byte _currentInterruptPhasePosition;  //1.3.2
+  unsigned long _dccMicros[2];          //1.3.2
 
 #endif
 
@@ -377,7 +386,7 @@ unsigned long _lastWIFITimer = 5000;
   //JMRI CMRI functions
 #if defined(JMRICMRI)
 
-  
+
   //receive
   byte _jmriCmriPacketSync;
   int _jmriCmriByteCount;
@@ -385,31 +394,31 @@ unsigned long _lastWIFITimer = 5000;
   byte _jmriCmriSerialBuffer;
   byte _jmriCmriByteRecBuffer[JMRICMRINUMCARDS * 2][2];  //max number of bytes...new state [0] and old state [1]
   //send
-  
+
   byte _jmriCmriSendData[JMRICMRINUMCARDS];
-  void jmriCmriUpdateSendBuffer(int senNum, byte senInst); 
-  void jmriCmri(void);//reads incoming serial packets
-  void jmriCmriProcessByte(byte incomingByte);//decides what to do with packet
+  void jmriCmriUpdateSendBuffer(int senNum, byte senInst);
+  void jmriCmri(void);                          //reads incoming serial packets
+  void jmriCmriProcessByte(byte incomingByte);  //decides what to do with packet
   void jmriCmriProcessRecBuffer(void);
   void jmriCmriProcessSendBuffer(void);
   //test variables
-  byte _jmriCmrisendFlag; 
+  byte _jmriCmrisendFlag;
   byte _jmriCmritestFlip;
 #endif
 //END JMRICMRI functions
 
 //NCE CAB BUS
 #if defined(CAB_BUS_ADDRESS)
-  byte _nceCommandBytes[256][5];//Holds the bytes to be transmitted...mod 0.8.2
-  byte _nceCommandBytesRead;//0.8.2
-  byte _nceCommandBytesWrite;//0.8.2
-  byte _sendNCEFlag; //Flag set to 1 when bytes to be transmitted
-  
-  void nceProcess(void);  //main function, waits to be polled and then sends transmission
-  void nceAccComProcess(int addr, byte dir); //turns nowRail acc commands into nce
-  void locoComToNCE(int addr, int speed, int dir); //loco speed control
-  void locoFuncToNCE(int addr, byte funcGroup, byte funcData);//send functions
-  void ncePowerOff(int addr, int speed, int dir);//tries to turns power off for all locos..E Stop
+  byte _nceCommandBytes[256][5];  //Holds the bytes to be transmitted...mod 0.8.2
+  byte _nceCommandBytesRead;      //0.8.2
+  byte _nceCommandBytesWrite;     //0.8.2
+  byte _sendNCEFlag;              //Flag set to 1 when bytes to be transmitted
+
+  void nceProcess(void);                                        //main function, waits to be polled and then sends transmission
+  void nceAccComProcess(int addr, byte dir);                    //turns nowRail acc commands into nce
+  void locoComToNCE(int addr, int speed, int dir);              //loco speed control
+  void locoFuncToNCE(int addr, byte funcGroup, byte funcData);  //send functions
+  void ncePowerOff(int addr, int speed, int dir);               //tries to turns power off for all locos..E Stop
   byte _nceclockData[8];
   byte _nceclockCount;
   byte _nceclockMode;
@@ -418,12 +427,12 @@ unsigned long _lastWIFITimer = 5000;
 #if defined(MP3BUSYPIN)
   void mp3SendCommand(void);
   void mp3PlayTrack(int trackNum);
-  void mp3Control(void);//deals with mult track play etc
-  
+  void mp3Control(void);  //deals with mult track play etc
 
-  int _mp3Accessories[MP3NUMTRACKS][6]; //AccNumber, dir, track num, mode = 0 single play, 1 part of random play
-  int _mp3NumAccs;//stores number of MP3 accessories set up
-  
+
+  int _mp3Accessories[MP3NUMTRACKS][6];  //AccNumber, dir, track num, mode = 0 single play, 1 part of random play
+  int _mp3NumAccs;                       //stores number of MP3 accessories set up
+
   int16_t _mp3CheckSum = 0;
   byte _mp3Command[6];
   byte _mp3CommandLength;
@@ -433,51 +442,51 @@ unsigned long _lastWIFITimer = 5000;
   int _mp3Timer;
   int _mp3PlayNextTrack;
   int _mp3BusyHigh;
-  
-
-
-
 #endif
-
-};
 #if defined(GT911)
 
-struct TouchLocation {
-  uint16_t x;
-  uint16_t y;
+  
+  int _GT911Buttons[GT911TOUCHBUTTONS][6];  //xpos xpos, accnum, press 1, press 2, buttonstate
+  int _GT911ButtonCount;
+
+  uint8_t _addr;  //CTP IIC ADDRESS
+  //Pins
+  int _GT911_RESET;  //CTP RESET
+  int _GT911_INT;    //CTP  INT
+
+  unsigned long _captouchbounce = 0;  //like button bounce for touch
+  int _captouched = 0;                //1 means there has been a touch
+
+  int _captouchx = 0;
+  int _captouchy = 0;
+
+  uint8_t _buf[80];
+
+  void GT911ProcessButtons(void);
+  void checkfortouchscreen();
+  void inttostr(uint16_t value, uint8_t *str);
+  uint8_t GT911_Send_Cfg(uint8_t *buf, uint16_t cfg_len);
+  void writeGT911TouchRegister(uint16_t regAddr, uint8_t *val, uint16_t cnt);
+  uint8_t readGT911TouchAddr(uint16_t regAddr, uint8_t *pBuf, uint8_t len);
+  uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num);
+#endif
 };
 
-//loco recall data
-//byte locoReCallLocoData[2];//0.9 mod locoid and locospeed
 
-
-//Various variables required for the GT911 screen
-
-void checkfortouchscreen();
-void gt911setup(int GT911ResetPin, int GT911IntPin);
-void inttostr(uint16_t value, uint8_t *str);
-uint8_t GT911_Send_Cfg(uint8_t *buf, uint16_t cfg_len);
-void writeGT911TouchRegister(uint16_t regAddr, uint8_t *val, uint16_t cnt);
-uint8_t readGT911TouchAddr(uint16_t regAddr, uint8_t *pBuf, uint8_t len);
-uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num);
-uint32_t dist(const TouchLocation &loc);
-uint32_t dist(const TouchLocation &loc1, const TouchLocation &loc2);
-bool sameLoc(const TouchLocation &loc, const TouchLocation &loc2);
-#endif
 
 #if defined(DCCDECODERPIN)
 void dccPinState(void);
 #endif
 
 
-#if ESP_IDF_VERSION_MAJOR < 5 // IDF 4.xxx
+#if ESP_IDF_VERSION_MAJOR < 5  // IDF 4.xxx
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len);
- #endif
- #if ESP_IDF_VERSION_MAJOR > 4 // IDF 5.xxx
-// //New V3.0.0 esp32 LIBRARY
- void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *incomingData, int len);
+#endif
+#if ESP_IDF_VERSION_MAJOR > 4  // IDF 5.xxx
+                               // //New V3.0.0 esp32 LIBRARY
+void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *incomingData, int len);
 
- #endif
+#endif
 
 
 #if defined(__cplusplus)
@@ -488,15 +497,17 @@ extern "C" {
   extern void nowTimeEvents(byte clockSpeed, byte clockHour, byte clockMinute, byte clockSecond, byte clockDay) __attribute__((weak));
   extern void nowAccComRec(int accNum, byte accInst) __attribute__((weak));
   extern void nowPanelUpdate(int accNum, byte accInst) __attribute__((weak));
-  extern void nowMomentButton(void) __attribute__((weak));              //Function for reading momentary button presses
-  extern void nowPowerCommand(byte Command) __attribute__((weak));      //Function controlling base station power
-  extern void nowGT911Touch(int xPos, int yPos) __attribute__((weak));  //reports GT911 touches
-  extern void nowSensorUpdate(int senNum, byte senInst) __attribute__((weak));//sensor updates
-  extern void nowClockSpeedUpdate(void) __attribute__((weak));//clock speed updates
-  extern void nowLocoFuncUpdate(int nowLocoID, byte nowFuncNum, byte nowFuncState) __attribute__((weak));//receives loco function updates..for updating controllers
-  extern void nowLocoSpeedUpdate(int locoAddr, byte locoSpeed, byte locoDir) __attribute__((weak));//receives loco function updates..for updating controllers
-  extern void nowLocoDataSetRX(void) __attribute__((weak)); //calls custom function when loco data transmitted
-  extern void nowLocoBulkDataRX(void) __attribute__((weak)); //called when a bulk data upload has finished
+  extern void nowMomentButton(void) __attribute__((weak));                                                 //Function for reading momentary button presses
+  extern void nowPowerCommand(byte Command) __attribute__((weak));                                         //Function controlling base station power
+  extern void nowGT911Touch(int xPos, int yPos) __attribute__((weak));                                     //reports GT911 touches
+  extern void nowSensorUpdate(int senNum, byte senInst) __attribute__((weak));                             //sensor updates
+  extern void nowClockSpeedUpdate(void) __attribute__((weak));                                             //clock speed updates
+  extern void nowLocoFuncUpdate(int nowLocoID, byte nowFuncNum, byte nowFuncState) __attribute__((weak));  //receives loco function updates..for updating controllers
+  extern void nowLocoSpeedUpdate(int locoAddr, byte locoSpeed, byte locoDir) __attribute__((weak));        //receives loco function updates..for updating controllers
+  extern void nowLocoDataSetRX(void) __attribute__((weak));                                                                      //calls custom function when loco data transmitted
+  extern void nowLocoBulkDataRX(void) __attribute__((weak));                                                                     //called when a bulk data upload has finished
+ // extern void nowRFIDDataRec(uint8_t incomingData[], int len) __attribute__((weak));  
+  extern void nowRFIDDataRec(uint8_t *incomingData, int len) __attribute__((weak)); 
 #if defined(__cplusplus)
 }
 #endif

@@ -1,10 +1,6 @@
-/* nowRailV1_5_5
-  15/12/25
-
-1.5.5 bug fix
-The following functions can now be deleted in customFunctions.ino without causing an error when compiling
-void nowLocoBulkDataRX()
-void nowLocoDataSetRX()
+/*nowRailV1_6_0
+20/12/2025
+RFID tags data transfer
 
 MIT License
 Copyright (c) 2025 Simon Coward
@@ -45,9 +41,8 @@ void setup() {
   
   //Start the system
   myLayout.init();//This functions sets up ESP-NOW as well as other items needed for the system to run
+  //myLayout.sendClockSpeedChange(1);//set clock speed to 1 for testing
   
-  //myLayout.sendClockTimeChange(10, 30, 15, 2); //sets clock time
-  myLayout.sendClockSpeedChange(1);//set clock speed to 1 for testing
 }
 
 void loop() {

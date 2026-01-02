@@ -1,5 +1,5 @@
-/* nowRailV1_5_5
-  15/12/25
+/*nowRailV1_6_0
+20/12/2025
 */
 
 #pragma once
@@ -97,9 +97,9 @@
 
 //GT911 Touch Screen.....................................................
 //See https://www.youtube.com/watch?v=0s4-Wp4rPuw
-//#define GT911 0x5D  //Uncomment for gt911 touch screen
-//#define GT911TOUCHBUTTONS 30  //sets the touch point buttons, increase for more buttons.
-//#define GT911TOUCHRADIUS 35   //35 is approx 5mm either side of the centre touch point
+// #define GT911 0x5D  //Uncomment for gt911 touch screen
+// #define GT911TOUCHBUTTONS 30  //sets the touch point buttons, increase for more buttons.
+// #define GT911TOUCHRADIUS 35   //35 is approx 5mm either side of the centre touch point
 
 
 //Other components........................................................

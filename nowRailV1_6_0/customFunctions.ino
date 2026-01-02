@@ -1,5 +1,5 @@
-/* nowRailV1_5_5
-  15/12/25
+/*nowRailV1_6_0
+20/12/2025
 
    This tab contains custom functions that are called when nowrail receives commands.
    This allows users to write their own code driven by these events using the varibles passed.
@@ -172,6 +172,14 @@ void nowGT911Touch(int xPos, int yPos) {
   Serial.print(xPos);
   Serial.print(" yPos: ");
   Serial.println(yPos);
+}
+
+//RFID data
+//void nowRFIDDataRec(uint8_t incomingData[], int len){
+void nowRFIDDataRec(uint8_t *incomingData, int len){
+  Serial.print("RFID bytes received: ");
+  Serial.println(len);
+  
 }
 
 //Other buttons or code--------------------------------------------
