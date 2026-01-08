@@ -1,5 +1,5 @@
-/*nowRailV1_6_0
-20/12/2025
+/*nowRailV1_7_1
+06/01/2026
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -178,12 +178,15 @@ public:
 
   void sendSensorUpdate(int senNum, byte senInst);  //Sends a sensor update
   void addStdPinSensor(int pin, int senNum);
+  //1.7.0
+  void addStdPinTSwitch(int pin, int accNum);
 
 
 #if defined(NUMCD4021CHIPS)
   void setupCD4021(int latchPin, int clockPin, int dataPin);                       // Sets up the pins
   void addCD4021PinButton(int chip, int pin, int accNum, int press1, int press2);  //Adds std pin accessories to system
   void addCD4021PinSensor(int chip, int pin, int senNum);
+  void addCD4021PinTSwitch(int chip, int pin, int accNum);  //1.7.0 adds toggle switch pin
 #endif
 #if defined(NUM74HC595NCHIPS)
   void setup74HC595N(int latchPin, int clockPin, int dataPin);                                 // Sets up the pins
@@ -239,6 +242,12 @@ private:
   void sensorEvents(void);          //go through sensors
   int _stdPinSensors[50][3];        //pin, senNum, LastState
   byte _stdPinSensorsCount;         //how mant Std pin sensors on board
+
+  //ToggleSwitches 1.7.0
+  void tswitchEvents(void);          //go through sensors
+  int _stdPinTSwitch[50][3];        //pin, senNum, LastState
+  byte _stdPinTSwitchCount;         //how mant Std pin sensors on board
+
 #if defined(WIFIMASTERCLOCKCHANGE)  //auto wifi channel change
   byte _currentWIFIChannel = 1;
   unsigned long _lastWIFIMillis;
@@ -259,6 +268,10 @@ private:
   //CD4021 sensors
   int _CD4021PinSensors[NUMCD4021CHIPS * 8][4];  //chip, pin, senNum, LastState
   int _CD4021SensorPinCount;                     //sensor pins added
+  //Toggle switches 1.7.0
+  int _CD4021PinTSwitch[NUMCD4021CHIPSNUMTSWITCH][4]; 
+  //int _CD4021PinTSwitch[NUMCD4021CHIPS * 8][4];  //chip, pin, AccNum, LastState
+  int _CD4021TSwitchPinCount;                    //Toggle switch pins added
 
 #endif
 #if defined(NUM74HC595NCHIPS)

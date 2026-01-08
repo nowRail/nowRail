@@ -1,5 +1,5 @@
-/*nowRailV1_6_0
-20/12/2025
+/*nowRailV1_7_1
+06/01/2026
 */
 #include "Arduino.h"
 #include "nowRail.h"
@@ -15,7 +15,7 @@ String nowRail::getnowRailAddr() {
   // _transmissionPrefix[1] = addr2;
   //_transmissionPrefix[2] = addr3;
   //_transmissionPrefix[3] = addr4;
-  myString = "Ox" + String(_transmissionPrefix[0], HEX) + " Ox" + String(_transmissionPrefix[1], HEX) + " Ox" + String(_transmissionPrefix[2], HEX) + " Ox" + String(_transmissionPrefix[3], HEX);
+  myString = "0x" + String(_transmissionPrefix[0], HEX) + " 0x" + String(_transmissionPrefix[1], HEX) + " 0x" + String(_transmissionPrefix[2], HEX) + " 0x" + String(_transmissionPrefix[3], HEX);
   return myString;
 }
 
@@ -906,6 +906,18 @@ void nowRail::addStdPinAcc(int pin, int accNum, int dir, int pulse, int setpinSt
   }
 }
 
+//1.7.0 adds toggle switch
+void nowRail::addStdPinTSwitch(int pin, int accNum) {
+  if (_stdPinTSwitchCount < 50) {
+    _stdPinTSwitch[_stdPinTSwitchCount][0] = pin;
+    _stdPinTSwitch[_stdPinTSwitchCount][1] = accNum;
+    _stdPinTSwitch[_stdPinTSwitchCount][2] = 2;  //Default value
+    _stdPinTSwitchCount++;
+    pinMode(pin, INPUT);
+  } else {
+    Serial.println("addStdPinTSwitch: Toggle Switch not added, too many in system. Pin:" + String(pin) + "accNum: " + String(accNum));
+  }
+}
 
 //74HC595N Shift register functions
 #if defined(NUM74HC595NCHIPS)
@@ -945,28 +957,18 @@ void nowRail::setup74HC595N(int latchPin, int clockPin, int dataPin) {  // Sets 
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
-  // Serial.println("DDDDDDDD");
-  // Serial.println(_S74HC595NBoardPins[LATCHPIN]);
-  // Serial.println(_S74HC595NBoardPins[DATAPIN]);
-  // Serial.println(_S74HC595NBoardPins[CLOCKPIN]);
-  //Set chips to start up values
-  //nowRail::update74HC595N();
 }
 
 void nowRail::update74HC595N() {
   digitalWrite(_S74HC595NBoardPins[LATCHPIN], LOW);
   for (int q = NUM74HC595NCHIPS; q > 0; q--) {  //cycle through the chips v0_3 fix was cycling in wrong order
     shiftOut(_S74HC595NBoardPins[DATAPIN], _S74HC595NBoardPins[CLOCKPIN], MSBFIRST, _S74HC595NbyteData[q - 1]);
-    // Serial.print("Shift: ");
-    // Serial.println(_S74HC595NbyteData[q-1],BIN);
   }
   digitalWrite(_S74HC595NBoardPins[LATCHPIN], HIGH);
 }
 
 //Set up the triggers for pins
 void nowRail::add74HC595NPinAcc(int chip, int pin, int accNum, int dir, int pulse, int setpinState) {
-  //Serial.print("NUM74HC595NCHIPS:");
-  //Serial.println(NUM74HC595NCHIPS);
   if (_S74HC595NPinAccCount < (NUM74HC595NCHIPS * 16)) {
     if (chip < NUM74HC595NCHIPS) {
       _S74HC595NPins[_S74HC595NPinAccCount][0] = chip;
@@ -1011,6 +1013,24 @@ void nowRail::addStdPinSensor(int pin, int senNum) {
 
 //CD4012 Shift register functions
 #if defined(NUMCD4021CHIPS)
+
+//1.7.0 toggle switches
+void nowRail::addCD4021PinTSwitch(int chip, int pin, int accNum) {  //ok
+  if (_CD4021TSwitchPinCount < NUMCD4021CHIPSNUMTSWITCH) {
+    if (chip < NUMCD4021CHIPS) {
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][0] = chip;
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][1] = pin;
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][2] = accNum;
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][3] = 2;  //default start value
+      _CD4021TSwitchPinCount++;
+    } else {
+      Serial.println("addCD4021PinTSwitch: item not added, INVALID Chip Number: " + String(chip) + " Increase NUMCD4021CHIPS in nowrail_user_setup.h");
+    }
+  } else {
+    Serial.println("addCD4021PinTSwitch: item not added, too many in system. Increase NUMCD4021CHIPSNUMTSWITCH in nowrail_user_setup.h");
+  }
+}
+
 //sensors
 void nowRail::addCD4021PinSensor(int chip, int pin, int senNum) {
   if (_CD4021SensorPinCount < NUMCD4021CHIPS * 8) {
@@ -1029,8 +1049,6 @@ void nowRail::addCD4021PinSensor(int chip, int pin, int senNum) {
     Serial.println("addCD4021PinSensor: item not added, too many in system. Increase Add more NUMCD4021CHIPS in nowrail_user_setup.h");
   }
 }
-
-
 
 void nowRail::setupCD4021(int latchPin, int clockPin, int dataPin) {
   _CD4021BoardPins[LATCHPIN] = latchPin;
@@ -1111,6 +1129,17 @@ void nowRail::sensorEvents() {
         nowRail::sendSensorUpdate(_stdPinSensors[q][1], _stdPinSensors[q][2]);
       }
     }
+
+    //1.7.0 std toggle switches added here uses sensor debounce
+    for (q = 0; q < _stdPinTSwitchCount; q++) {
+      senRead = digitalRead(_stdPinTSwitch[q][0]);
+      if (senRead != _stdPinTSwitch[q][2]) {  //check if reading has changed
+        _stdPinTSwitch[q][2] = senRead;       //update the sensor status
+        nowRail::sendAccessoryCommand(_stdPinTSwitch[q][1], _stdPinTSwitch[q][2], MESSRESPREQ);
+      }
+    }
+
+
     //Now its the CD4021 registers
 #if defined(NUMCD4021CHIPS)
 
@@ -1118,6 +1147,7 @@ void nowRail::sensorEvents() {
     for (q = 0; q < NUMCD4021CHIPS; q++) {
       //v0_3 mods gone back to shiftIn()
       _CD4021byteData[q] = shiftIn(_CD4021BoardPins[DATAPIN], _CD4021BoardPins[CLOCKPIN], LSBFIRST);
+      //Serial.println(_CD4021byteData[q],BIN);//check data ok
     }
     //all data should be stored now so process it
 
@@ -1126,20 +1156,21 @@ void nowRail::sensorEvents() {
 
       if (senRead != _CD4021PinSensors[q][3]) {
         _CD4021PinSensors[q][3] = senRead;
-        // Serial.print("chip: ");
-        // Serial.print(_CD4021PinSensors[q][0]);
-        // Serial.print(" PIN: ");
-        // Serial.print(_CD4021PinSensors[q][1]);
-        // Serial.print(" senNUm: ");
-        // Serial.print(_CD4021PinSensors[q][2]);
-        // Serial.print(" VAL: ");
-        // Serial.println(_CD4021PinSensors[q][3]);
-        // Serial.print(" _CD4021SensorPinCount: ");
-        // Serial.println(_CD4021SensorPinCount);
 
         nowRail::sendSensorUpdate(_CD4021PinSensors[q][2], _CD4021PinSensors[q][3]);
       }
     }
+    //1.7.0 toggle switches...added in sensors as uses the same code
+    for (q = 0; q < _CD4021TSwitchPinCount; q++) {  //work through the array of sensors
+
+      senRead = bitRead(_CD4021byteData[_CD4021PinTSwitch[q][0]], _CD4021PinTSwitch[q][1]);
+
+      if (senRead != _CD4021PinTSwitch[q][3]) {
+        _CD4021PinTSwitch[q][3] = senRead;
+        nowRail::sendAccessoryCommand(_CD4021PinTSwitch[q][2], _CD4021PinTSwitch[q][3], MESSRESPREQ);
+      }
+    }
+
 #endif
   }
 }
@@ -1175,17 +1206,12 @@ void nowRail::buttonsPressed(void) {
       //v0_3 mods gone back to shiftIn()
       //_CD4021byteData[q] = get4021Byte(_CD4021BoardPins[DATAPIN], _CD4021BoardPins[CLOCKPIN]);
       _CD4021byteData[q] = shiftIn(_CD4021BoardPins[DATAPIN], _CD4021BoardPins[CLOCKPIN], LSBFIRST);
-      //  Serial.print(q);
-      //  Serial.print(" : ");
-      //  Serial.println(_CD4021byteData[q],BIN);
     }
     //all data should be stored now so process it
     //buttons first
     for (q = 0; q < _CD4021PinCount; q++) {  //work through the array
 
       if (bitRead(_CD4021byteData[_CD4021PinButtons[q][0]], _CD4021PinButtons[q][1]) == 1) {
-        // Serial.print("pin: ");
-        // Serial.println(q);
         if (_CD4021PinButtons[q][5] > 3) {
           _CD4021PinButtons[q][5] = 3;  //set to target for this button press
         } else {
@@ -1194,6 +1220,8 @@ void nowRail::buttonsPressed(void) {
         nowRail::sendAccessoryCommand(_CD4021PinButtons[q][2], _CD4021PinButtons[q][_CD4021PinButtons[q][5]], MESSRESPREQ);  //1 response required
       }
     }
+
+    //1.7.0 toggle switches
 
 
 #endif
@@ -1305,10 +1333,7 @@ void nowRail::sendClockTimeChange(byte hour, byte mins, byte seconds, byte day) 
   sendFifoBuffer[sendWriteFifoCounter][MESSAGECLOCKDAY] = day;                     //day
   incsendWriteFifoCounter();
 }
-// #define MESSAGECLOCKHOUR 17
-// #define MESSAGECLOCKMIN 18
-// #define MESSAGECLOCKSEC 19
-// #define MESSAGECLOCKDAY 20
+
 
 // //Deals with setting time and time broadcaster if MASTERCLOCK_ON
 void nowRail::clockEvents(void) {
@@ -1407,10 +1432,6 @@ void nowRail::checkRecFifo(void) {
 
     //Is this message for this system?...check layout prefix
     if (recFifoBuffer[recReadFifoCounter][0] == _transmissionPrefix[0] && recFifoBuffer[recReadFifoCounter][1] == _transmissionPrefix[1] && recFifoBuffer[recReadFifoCounter][2] == _transmissionPrefix[2] && recFifoBuffer[recReadFifoCounter][3] == _transmissionPrefix[3]) {
-
-
-
-      //
       switch (recFifoBuffer[recReadFifoCounter][MESSAGETYPE]) {
         case TIMEUPDATE:
 
@@ -1520,36 +1541,17 @@ void nowRail::checkRecFifo(void) {
             myBitSet = 0;
             for (q = 0; q < _S74HC595NPinAccCount; q++) {
               if (_S74HC595NPins[q][2] == accNum && _S74HC595NPins[q][3] == accInst) {
-                // for(int r=0;r<6;r++){
-                //     Serial.print(_S74HC595NPins[q][r]);
-                // Serial.print(" : ");
 
-                // }
-
-                //Serial.println("MATCH");
                 //set the bit in the byte array
                 if (_S74HC595NPins[q][5] == HIGH) {
-                  // Serial.print(_S74HC595NbyteData[_S74HC595NPins[q][0]],BIN);
-                  // Serial.print(" : ");
-                  // Serial.print( _S74HC595NPins[q][1]);
-                  // Serial.println(" bitSet");
-
                   bitSet(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
                 } else {
-                  // Serial.print(_S74HC595NbyteData[_S74HC595NPins[q][0]],BIN);
-                  // Serial.print(" : ");
-                  // Serial.print( _S74HC595NPins[q][1]);
-                  // Serial.println(" bitClear");
-
                   bitClear(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
                 }
-                //if(_S74HC595NPins[q][4] > 0){
+
                 _S74HC595NPins[q][6] = 1;
-                // }else{
-                // _S74HC595NPins[q][6] = 0;
-                //}
                 _S74HC595NPinAccMillis[q] = _currentMillis;
-                // q = _S74HC595NPinAccCount;//break out of loop
+
                 myBitSet = 1;  //set a flag that change has been made
               }
             }
@@ -1568,16 +1570,6 @@ void nowRail::checkRecFifo(void) {
             Serial.println(accInst);
 #endif
             //servos
-            // for (q = 0; q < _pca9685ServoCount; q++) {
-            //   if (_pca9685Servos[q][2] == accNum) {
-            //     if (accInst < 1) {
-            //       nowRail::setPCA695Servo(byte(_pca9685Servos[q][0]), byte(_pca9685Servos[q][1]), byte(_pca9685Servos[q][3]));
-            //     } else {
-            //       nowRail::setPCA695Servo(byte(_pca9685Servos[q][0]), byte(_pca9685Servos[q][1]), byte(_pca9685Servos[q][4]));
-            //     }
-            //     _accMoved = 1;  //was processed
-            //   }
-            // }
             //1.0.3 mods... old system used to set the servo, new version changes target and move takes place in loop
             //int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][8];  //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion)
 
@@ -1593,8 +1585,6 @@ void nowRail::checkRecFifo(void) {
                 _accMoved = 1;  //was processed
               }
             }
-
-
 
             for (q = 0; q < _pca9685LEDCount; q++) {
               if (_pca9685LEDS[q][2] == accNum) {  //if it's the correct acc number
@@ -1612,12 +1602,6 @@ void nowRail::checkRecFifo(void) {
 #endif
 
 #if defined(MP3BUSYPIN)
-            // _mp3Accessories[_mp3NumAccs][0] = accNum;
-            //     _mp3Accessories[_mp3NumAccs][1] = dirOn;
-            //     _mp3Accessories[_mp3NumAccs][2] = trackNum;
-            //     _mp3Accessories[_mp3NumAccs][3] = maxtrackNum;
-            //     _mp3Accessories[_mp3NumAccs][4] = mode;
-            //     _mp3Accessories[_mp3NumAccs][5] = play state
             for (q = 0; q < _mp3NumAccs; q++) {  //work through the accessories
               // Serial.print("TT Track: ");
               //     Serial.println(_mp3Accessories[q][2]);
@@ -1639,8 +1623,6 @@ void nowRail::checkRecFifo(void) {
                 }
                 _accMoved = 1;  //stop more transmissions
               }
-
-
             }
 
 #endif
@@ -1911,7 +1893,7 @@ void nowRail::checkRecFifo(void) {
           Serial.println(_DCCEXCommand);
 #endif
 
-#if defined(CAB_BUS_ADDRESS)  //1.2.2 bug fix 
+#if defined(CAB_BUS_ADDRESS)  //1.2.2 bug fix \
                               //loco data needed
 
 
@@ -2014,16 +1996,16 @@ void nowRail::checkRecFifo(void) {
 #endif
           Serial.print("DIAG> FASTCLOCKUPDATE > SETMASTERCLOCKTIME: ");
           break;
-        case RFIDDATA: //1.5.4 mod adds RFID data transmission
+        case RFIDDATA:  //1.5.4 mod adds RFID data transmission
 #if defined(DIAGNOSTICS_ON)
           Serial.println("DIAG>RFIDDATA");
           uint8_t sendRFIDDataBytes[30];
           if (nowRFIDDataRec)  //custom function
-            
-            memcpy(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter] + RFIDDATASTART,recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]); 
-           // nowRFIDDataRec( sendRFIDDataBytes,recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
+
+            memcpy(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter] + RFIDDATASTART, recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
+          // nowRFIDDataRec( sendRFIDDataBytes,recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
           //nowRFIDDataRec(uint8_t *incomingData, int len)
-          nowRFIDDataRec(sendRFIDDataBytes,recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
+          nowRFIDDataRec(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
 #endif
           break;
         default:
@@ -2170,7 +2152,10 @@ void nowRail::runLayout(void) {
         _currentWIFIChannel = 1;
         break;
     }
-    Serial.println("Looking for Layout on Channel: " + String(_currentWIFIChannel));
+    Serial.println("Looking for MASTERCLOCK... Is it turned on?");
+    Serial.println("Is layout ID correct?");
+    Serial.println("Layout ID :" +getnowRailAddr() + " Trying WiFi Channel: " + String(_currentWIFIChannel));
+    Serial.println("  ");
     WiFi.setChannel(_currentWIFIChannel);  //change to next channel
     _lastWIFIMillis = _currentMillis;      //reset to try again
   }
@@ -3379,22 +3364,22 @@ void nowRail::locoRXAllLocoData(int state) {
 //byte _locoBulkDataRXPos;
 
 //RFID data
-void nowRail::sendRFIDData(uint8_t rfidData[], uint8_t len) {  //receives and transmits data
-  if (len < 31) {//max 30 byes
-   memcpy(sendFifoBuffer[sendWriteFifoCounter], _transmissionPrefix, 10);           //set message prefix
-  sendFifoBuffer[sendWriteFifoCounter][MESSAGELOWID] = sendWriteFifoCounter;       //MessageID
-  sendFifoBuffer[sendWriteFifoCounter][MESSAGEHIGHID] = sendWriteHighFifoCounter;  //MessageID HIGH BYTE
-  sendFifoBuffer[sendWriteFifoCounter][MESSRESPONSE] = MESSRESPNOTREQ;             //Doesn't require response, could go to multiple panels
-  sendFifoBuffer[sendWriteFifoCounter][MESSTRANSCOUNT] = 0;                        //0 as new message
-  sendFifoBuffer[sendWriteFifoCounter][MESSAGETYPE] = RFIDDATA;             //FASTCLOCKUPDATE
-  sendFifoBuffer[sendWriteFifoCounter][RFIDNUMBYTES] = len;            //send length of data
-  memcpy(sendFifoBuffer[sendWriteFifoCounter] + RFIDDATASTART, rfidData, len); 
+void nowRail::sendRFIDData(uint8_t rfidData[], uint8_t len) {                        //receives and transmits data
+  if (len < 31) {                                                                    //max 30 byes
+    memcpy(sendFifoBuffer[sendWriteFifoCounter], _transmissionPrefix, 10);           //set message prefix
+    sendFifoBuffer[sendWriteFifoCounter][MESSAGELOWID] = sendWriteFifoCounter;       //MessageID
+    sendFifoBuffer[sendWriteFifoCounter][MESSAGEHIGHID] = sendWriteHighFifoCounter;  //MessageID HIGH BYTE
+    sendFifoBuffer[sendWriteFifoCounter][MESSRESPONSE] = MESSRESPNOTREQ;             //Doesn't require response, could go to multiple panels
+    sendFifoBuffer[sendWriteFifoCounter][MESSTRANSCOUNT] = 0;                        //0 as new message
+    sendFifoBuffer[sendWriteFifoCounter][MESSAGETYPE] = RFIDDATA;                    //FASTCLOCKUPDATE
+    sendFifoBuffer[sendWriteFifoCounter][RFIDNUMBYTES] = len;                        //send length of data
+    memcpy(sendFifoBuffer[sendWriteFifoCounter] + RFIDDATASTART, rfidData, len);
 
-  incsendWriteFifoCounter();  
+    incsendWriteFifoCounter();
 
-  }else{  //send error message and DO NOT transmit
+  } else {  //send error message and DO NOT transmit
     Serial.print("ERROR> sendRFIDData  too much data, max 30 bytes ");
-      Serial.print(len);
+    Serial.print(len);
     Serial.println(" sent");
   }
 }

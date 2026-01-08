@@ -114,17 +114,6 @@ void touchProcessBox(int box){
             break;
         case 36://Loco Selected
             setNewCurrentLoco();
-            // myLayout.locoReCallDataUpdate(locoID,locoSpeed);//Update the recall system...current loco
-            // //stop current loco
-            // locoSpeed = 128;//set speed to 0 forwards
-            // screenLocoSpeed();
-            // //now set the new loco
-            
-            // locoID = locoSelectSelectedLoco;
-            // myLayout.locoReCallDataUpdate(locoID,locoSpeed);//Update the recall system...new loco
-            // screenLocoNameNum();
-            // screenLocoSpeed();
-            // buildscreen1();
             break;
         case 37: //Receive << 
             break;
@@ -430,12 +419,91 @@ void touchProcessBox(int box){
           case 162:
             buildscreen1();//return to front screen
             break;
+            //controller v4.0 mods
+          case 163: //set time
+            buildscreen11();//time screen
+            break;
+          case 164: //exit screen 11
+            buildscreen1();//return to front screen
+            break;
+          case 165: //update and exit screen 11... sends comand
+            myLayout.sendClockTimeChange(setTimeAdjust[0], setTimeAdjust[1], setTimeAdjust[2], setTimeAdjust[3]);
+            buildscreen1();//return to front screen
+            break;
+          case 168: //Hour +
+            if(setTimeAdjust[0] < 23){
+              setTimeAdjust[0]++;
+            }else{
+             setTimeAdjust[0] = 0; 
+            }
+            drawTimeStringBox();
+            break;
+          case 169: //minute +
+            if(setTimeAdjust[1] < 59){
+              setTimeAdjust[1]++;
+            }else{
+             setTimeAdjust[1] = 0; 
+            }
+            drawTimeStringBox();
+            break;
+          case 170: //seconds +
+            if(setTimeAdjust[2] < 59){
+              setTimeAdjust[2]++;
+            }else{
+             setTimeAdjust[2] = 0; 
+            }
+            drawTimeStringBox();
+            break;
+          case 171: //day +
+            if(setTimeAdjust[3] < 6){
+              setTimeAdjust[3]++;
+            }else{
+             setTimeAdjust[3] = 0; 
+            }
+            drawTimeStringBox();
+            break;
+          case 172: //Hour -
+            if(setTimeAdjust[0] > 0){
+              setTimeAdjust[0]--;
+            }else{
+             setTimeAdjust[0] = 23; 
+            }
+            drawTimeStringBox();
+            break;
+          case 173: //minute -
+            if(setTimeAdjust[1] > 0){
+              setTimeAdjust[1]--;
+            }else{
+             setTimeAdjust[1] = 59; 
+            }
+            drawTimeStringBox(); 
+            break;
+          case 174: //seconds -
+            if(setTimeAdjust[2] > 0){
+              setTimeAdjust[2]--;
+            }else{
+             setTimeAdjust[2] = 59; 
+            }
+            drawTimeStringBox();
+            break;
+          case 175: //day -
+            if(setTimeAdjust[3] > 0){
+              setTimeAdjust[3]--;
+            }else{
+             setTimeAdjust[3] = 6; 
+            }
+            drawTimeStringBox();
+            break;
         default:
             break;
     }
   }
   
 }
+//  setTimeAdjust[0] = myLayout.rtcHours();
+//   setTimeAdjust[1] = myLayout.rtcMinutes(); 
+//   setTimeAdjust[2] = myLayout.rtcSeconds(); 
+//   setTimeAdjust[3] = myLayout.rtcDays();
 
 void touchProcess() {
   int q;

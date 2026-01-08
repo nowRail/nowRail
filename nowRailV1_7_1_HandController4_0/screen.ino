@@ -15,6 +15,8 @@ byte rxNum;  //current slot received
 
 byte staticAccNum[4];  //stores static acc address for screen 9
 
+byte setTimeAdjust[4];  // controller v4.0 mods
+
 //loco recall
 byte recallPos = 1;
 unsigned long recallMillis;
@@ -23,7 +25,7 @@ int recallTimer = 3000;  //will reset the recall pos to 1 after 3 seconds
 byte onOffState[2];
 
 byte currentScreenDay = 10;     //set out of bounds so it triggers on start up
-int numScreenBoxes = 163;       //number of boxes in screen box array
+int numScreenBoxes = 180;       //controller v4.0 mods number of boxes in screen box array
 int screenBoxes[][6] = {        //x,y,w,h,screen mode,state 0 = off 1 = selected 2 = red
   { 101, 0, 115, 24, 0, 0 },    //day 0
   { 0, 0, 100, 24, 0, 0 },      //time 1
@@ -212,15 +214,97 @@ int screenBoxes[][6] = {        //x,y,w,h,screen mode,state 0 = off 1 = selected
   { 192, 272, 64, 64, 9, 0 },  // 8
   { 256, 272, 64, 64, 9, 0 },  // 9       156
   //screen 7 addition
-  { 0, 278, 160, 64, 7, 0 },  //WIFI CH       157
+  { 0, 278, 159, 64, 7, 0 },  //WIFI CH       157
   //screen 10 wifi channel
-  { 0, 80, 320, 64, 10, 0 },     //Select channel Layout Code 158
-  { 0, 148, 64, 64, 10, 0 },      //channel 1   159
-  { 128, 148, 64, 64, 10, 0 },    //channel 6   160     
-  { 256, 148, 64, 64, 10, 0 },    //channel 11  161 
-  { 0, 400, 159, 64, 10, 0 },    //Exit      162    
+  { 0, 80, 320, 64, 10, 0 },    //Select channel Layout Code 158
+  { 0, 148, 64, 64, 10, 0 },    //channel 1   159
+  { 128, 148, 64, 64, 10, 0 },  //channel 6   160
+  { 256, 148, 64, 64, 10, 0 },  //channel 11  161
+  { 0, 400, 159, 64, 10, 0 },   //Exit      162
+  //controller v4.0 mods
+  //screen 7 addition
+  { 160, 278, 159, 64, 7, 0 },  //Set Time       163
+  //screen 11 set Time
+  { 0, 400, 159, 64, 11, 0 },    //Exit      164
+  { 160, 400, 159, 64, 11, 0 },  //Update       165
+  { 0, 80, 320, 64, 11, 0 },     // //Set Time 166
+                                 // { 0, 146, 320, 64, 7, 0 },    //Time string 167
+  { 0, 210, 320, 64, 11, 0 },    //Time string 167
+  { 32, 144, 64, 64, 11, 0 },    //hour inc 168
+  { 96, 144, 64, 64, 11, 0 },    //Min inc       169
+  { 160, 144, 64, 64, 11, 0 },   //Seconds  inc     170
+  { 224, 144, 64, 64, 11, 0 },   //Day  inc     171
+  { 32, 276, 64, 64, 11, 0 },    //Hour dec 172
+  { 96, 276, 64, 64, 11, 0 },    //Minute dec 173
+  { 160, 276, 64, 64, 11, 0 },   //Seconds  dec 174
+  { 224, 276, 64, 64, 11, 0 },   //Day   dec  175
   { 0, 0, 0, 0, 0, 0 }
 };
+
+void drawTimeStringBox() {
+  tft.setFreeFont(FSS12);
+  String myString;
+  int box;
+  if (setTimeAdjust[0] < 10) {
+    myString = '0' + String(setTimeAdjust[0]);
+  } else {
+    myString = String(setTimeAdjust[0]);
+  }
+  if (setTimeAdjust[1] < 10) {
+    myString = myString + ":0" + String(setTimeAdjust[1]);
+  } else {
+    myString = myString + ':' + String(setTimeAdjust[1]);
+  }
+  if (setTimeAdjust[2] < 10) {
+    myString = myString + ":0" + String(setTimeAdjust[2]) + " Day " + String(setTimeAdjust[3]);
+  } else {
+    myString = myString + ':' + String(setTimeAdjust[2]) + " Day " + String(setTimeAdjust[3]);
+  }
+  box = 167;
+  //myString = "06:35:14 Day 2";
+  drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+}
+
+void buildscreen11() {  //set time
+  int box;
+  int q;
+  String myString;
+  screenMode = 11;  //Screen Mode
+  setTimeAdjust[0] = myLayout.rtcHours();
+  setTimeAdjust[1] = myLayout.rtcMinutes();
+  setTimeAdjust[2] = myLayout.rtcSeconds();
+  setTimeAdjust[3] = myLayout.rtcDays();
+
+  tft.setFreeFont(FSS12);
+  screenBlackBack();
+
+  box = 164;
+  myString = "Exit";
+  drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+
+  box = 165;
+  myString = "Update";
+  drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+
+  box = 166;
+  myString = "Set Time";
+  drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+
+  drawTimeStringBox();
+
+
+  myString = '+';
+  for (q = 168; q < 172; q++) {
+    box = q;
+    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+  }
+
+  myString = '-';
+  for (q = 172; q < 176; q++) {
+    box = q;
+    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+  }
+}
 
 void buildscreen10() {  //wifi seclection
   int box;
@@ -247,10 +331,6 @@ void buildscreen10() {  //wifi seclection
   box = 162;
   myString = "Exit";
   drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
-
-  
-
-  
 }
 
 
@@ -358,27 +438,27 @@ void buildscreen7() {
   tft.setFreeFont(FSS12);
   screenBlackBack();
 
-  box = 123;  //exit
+  box = 123;
   myString = "<< Clock";
   drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
 
-  box = 124;  //select
+  box = 124;
   myString = "Clock >>";
   drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
 
-  box = 125;  //select
+  box = 125;
   myString = "Exit";
   drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
 
-  box = 126;  //select
+  box = 126;
   myString = "Layout Code";
   drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
 
-  box = 127;  //select
+  box = 127;
   myString = myLayout.getnowRailAddr();
   drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
 
-  box = 128;  //exit
+  box = 128;
   myString = "TX ALL";
   if (txAllState < 1) {
     drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
@@ -386,7 +466,7 @@ void buildscreen7() {
     drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 0, CC_DATUM);
   }
 
-  box = 129;  //select
+  box = 129;
   myString = "RX ALL";
   if (rxAllState < 1) {
     drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
@@ -394,29 +474,45 @@ void buildscreen7() {
     drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 0, CC_DATUM);
   }
 
-  box = 157;  //select
+  box = 157;
   myString = "Wifi CH";
+  drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+
+  box = 163;
+  myString = "Set Time";
   drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
 }
 
 void setNewCurrentLoco() {
-
+  int q;
   myLayout.locoReCallDataUpdate(locoID, locoSpeed);  //Update the recall system...current loco
   //stop current loco
 
-  
+
   //now set the new loco
   locoSpeed = 128;  //set speed to 0 forwards
   locoID = locoSelectSelectedLoco;
   myLayout.locoReCallDataUpdate(locoID, locoSpeed);  //Update the recall system...new loco
   screenLocoNameNum();
   screenLocoSpeed();
+  //controller v4.0 mods
+  //clear consists if exists
+  for (q = 0; q < 200; q++) {  //work through the whole loco array
+    if (myLayout.locoGetConsistState(q) == 2) {
+      myLayout.locoSetConsistState(q, 0);  //reset all the consist bytes
+    } else {
+      if (myLayout.locoGetConsistState(q) == 3) {
+        myLayout.locoSetConsistState(q, 1);  //reset all the consist bytes
+      }
+    }
+  }
   buildscreen1();
 }
 
 
 //deals with loco recall button press
 void locoRecallPressed() {
+  
   //update the current locos speeds
   myLayout.locoReCallDataUpdate(locoID, locoSpeed);  //Update the recall system...current loco
   //now set for new loco
@@ -425,10 +521,23 @@ void locoRecallPressed() {
   recallPos = recallPos + 2;
   recallMillis = currentMillis;  //sets for 5 sec timer
 
+
+
   //Now I have this data update the screen and recall system
   myLayout.locoReCallDataUpdate(locoID, locoSpeed);  //Update the recall system...current loco
   screenLocoNameNum();
   screenLocoSpeed();
+  //controller v4.0 mods
+  //remove consists
+  for (int q = 0; q < 200; q++) {  //work through the whole loco array
+      if (myLayout.locoGetConsistState(q) == 2) {
+        myLayout.locoSetConsistState(q, 0);  //reset all the consist bytes
+      } else {
+        if (myLayout.locoGetConsistState(q) == 3) {
+          myLayout.locoSetConsistState(q, 1);  //reset all the consist bytes
+        }
+      }
+    }
   buildscreen1();
 }
 
@@ -737,6 +846,8 @@ void screen1OtherButtons() {
   box = 18;
   myString = "Recall";
   if (recallPos < 2) {
+    
+    
     drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 35, 20);
   } else {
     drawScreenBox30fnt(box, TFT_YELLOW, TFT_BLACK, myString, TFT_BLACK, TFT_YELLOW, 35, 20);

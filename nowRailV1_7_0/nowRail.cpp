@@ -1,5 +1,5 @@
-/* nowRail 1_4_4
-    22/10/2025
+/*nowRailV1_7_0
+01/01/2026
 */
 #include "Arduino.h"
 #include "nowRail.h"
@@ -15,7 +15,7 @@ String nowRail::getnowRailAddr() {
   // _transmissionPrefix[1] = addr2;
   //_transmissionPrefix[2] = addr3;
   //_transmissionPrefix[3] = addr4;
-  myString = "Ox" + String(_transmissionPrefix[0], HEX) + " Ox" + String(_transmissionPrefix[1], HEX) + " Ox" + String(_transmissionPrefix[2], HEX) + " Ox" + String(_transmissionPrefix[3], HEX);
+  myString = "0x" + String(_transmissionPrefix[0], HEX) + " Ox" + String(_transmissionPrefix[1], HEX) + " Ox" + String(_transmissionPrefix[2], HEX) + " Ox" + String(_transmissionPrefix[3], HEX);
   return myString;
 }
 
@@ -142,11 +142,7 @@ void nowRail::sendDCCLocoFunc(byte locoID, int dccAddr, byte funcNum, byte funcS
   nowRail::incsendWriteFifoCounter();  //new function to add highbyte to messageID
 }
 
-//DCCLOCOFUNCTION
-#define LOCOFUNC 16       //
-#define LOCOFUNCSTATE 17  //
-#define LOCOADDRHIGH 18   //address high byte
-#define LOCOADDRLOW 19    //address low byte
+
 
 
 #if defined(NOWDisc)  //These functions are only needed for eeprom
@@ -910,6 +906,18 @@ void nowRail::addStdPinAcc(int pin, int accNum, int dir, int pulse, int setpinSt
   }
 }
 
+//1.7.0 adds toggle switch
+void nowRail::addStdPinTSwitch(int pin, int accNum) {
+  if (_stdPinTSwitchCount < 50) {
+    _stdPinTSwitch[_stdPinTSwitchCount][0] = pin;
+    _stdPinTSwitch[_stdPinTSwitchCount][1] = accNum;
+    _stdPinTSwitch[_stdPinTSwitchCount][2] = 2;  //Default value
+    _stdPinTSwitchCount++;
+    pinMode(pin, INPUT);
+  } else {
+    Serial.println("addStdPinTSwitch: Toggle Switch not added, too many in system. Pin:" + String(pin) + "accNum: " + String(accNum));
+  }
+}
 
 //74HC595N Shift register functions
 #if defined(NUM74HC595NCHIPS)
@@ -949,28 +957,18 @@ void nowRail::setup74HC595N(int latchPin, int clockPin, int dataPin) {  // Sets 
   pinMode(latchPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
-  // Serial.println("DDDDDDDD");
-  // Serial.println(_S74HC595NBoardPins[LATCHPIN]);
-  // Serial.println(_S74HC595NBoardPins[DATAPIN]);
-  // Serial.println(_S74HC595NBoardPins[CLOCKPIN]);
-  //Set chips to start up values
-  //nowRail::update74HC595N();
 }
 
 void nowRail::update74HC595N() {
   digitalWrite(_S74HC595NBoardPins[LATCHPIN], LOW);
   for (int q = NUM74HC595NCHIPS; q > 0; q--) {  //cycle through the chips v0_3 fix was cycling in wrong order
     shiftOut(_S74HC595NBoardPins[DATAPIN], _S74HC595NBoardPins[CLOCKPIN], MSBFIRST, _S74HC595NbyteData[q - 1]);
-    // Serial.print("Shift: ");
-    // Serial.println(_S74HC595NbyteData[q-1],BIN);
   }
   digitalWrite(_S74HC595NBoardPins[LATCHPIN], HIGH);
 }
 
 //Set up the triggers for pins
 void nowRail::add74HC595NPinAcc(int chip, int pin, int accNum, int dir, int pulse, int setpinState) {
-  //Serial.print("NUM74HC595NCHIPS:");
-  //Serial.println(NUM74HC595NCHIPS);
   if (_S74HC595NPinAccCount < (NUM74HC595NCHIPS * 16)) {
     if (chip < NUM74HC595NCHIPS) {
       _S74HC595NPins[_S74HC595NPinAccCount][0] = chip;
@@ -1015,6 +1013,24 @@ void nowRail::addStdPinSensor(int pin, int senNum) {
 
 //CD4012 Shift register functions
 #if defined(NUMCD4021CHIPS)
+
+//1.7.0 toggle switches
+void nowRail::addCD4021PinTSwitch(int chip, int pin, int accNum) {  //ok
+  if (_CD4021TSwitchPinCount < NUMCD4021CHIPSNUMTSWITCH) {
+    if (chip < NUMCD4021CHIPS) {
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][0] = chip;
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][1] = pin;
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][2] = accNum;
+      _CD4021PinTSwitch[_CD4021TSwitchPinCount][3] = 2;  //default start value
+      _CD4021TSwitchPinCount++;
+    } else {
+      Serial.println("addCD4021PinTSwitch: item not added, INVALID Chip Number: " + String(chip) + " Increase NUMCD4021CHIPS in nowrail_user_setup.h");
+    }
+  } else {
+    Serial.println("addCD4021PinTSwitch: item not added, too many in system. Increase NUMCD4021CHIPSNUMTSWITCH in nowrail_user_setup.h");
+  }
+}
+
 //sensors
 void nowRail::addCD4021PinSensor(int chip, int pin, int senNum) {
   if (_CD4021SensorPinCount < NUMCD4021CHIPS * 8) {
@@ -1033,8 +1049,6 @@ void nowRail::addCD4021PinSensor(int chip, int pin, int senNum) {
     Serial.println("addCD4021PinSensor: item not added, too many in system. Increase Add more NUMCD4021CHIPS in nowrail_user_setup.h");
   }
 }
-
-
 
 void nowRail::setupCD4021(int latchPin, int clockPin, int dataPin) {
   _CD4021BoardPins[LATCHPIN] = latchPin;
@@ -1115,6 +1129,17 @@ void nowRail::sensorEvents() {
         nowRail::sendSensorUpdate(_stdPinSensors[q][1], _stdPinSensors[q][2]);
       }
     }
+
+    //1.7.0 std toggle switches added here uses sensor debounce
+    for (q = 0; q < _stdPinTSwitchCount; q++) {
+      senRead = digitalRead(_stdPinTSwitch[q][0]);
+      if (senRead != _stdPinTSwitch[q][2]) {  //check if reading has changed
+        _stdPinTSwitch[q][2] = senRead;       //update the sensor status
+        nowRail::sendAccessoryCommand(_stdPinTSwitch[q][1], _stdPinTSwitch[q][2], MESSRESPREQ);
+      }
+    }
+
+
     //Now its the CD4021 registers
 #if defined(NUMCD4021CHIPS)
 
@@ -1122,6 +1147,7 @@ void nowRail::sensorEvents() {
     for (q = 0; q < NUMCD4021CHIPS; q++) {
       //v0_3 mods gone back to shiftIn()
       _CD4021byteData[q] = shiftIn(_CD4021BoardPins[DATAPIN], _CD4021BoardPins[CLOCKPIN], LSBFIRST);
+      //Serial.println(_CD4021byteData[q],BIN);//check data ok
     }
     //all data should be stored now so process it
 
@@ -1130,20 +1156,21 @@ void nowRail::sensorEvents() {
 
       if (senRead != _CD4021PinSensors[q][3]) {
         _CD4021PinSensors[q][3] = senRead;
-        // Serial.print("chip: ");
-        // Serial.print(_CD4021PinSensors[q][0]);
-        // Serial.print(" PIN: ");
-        // Serial.print(_CD4021PinSensors[q][1]);
-        // Serial.print(" senNUm: ");
-        // Serial.print(_CD4021PinSensors[q][2]);
-        // Serial.print(" VAL: ");
-        // Serial.println(_CD4021PinSensors[q][3]);
-        // Serial.print(" _CD4021SensorPinCount: ");
-        // Serial.println(_CD4021SensorPinCount);
 
         nowRail::sendSensorUpdate(_CD4021PinSensors[q][2], _CD4021PinSensors[q][3]);
       }
     }
+    //1.7.0 toggle switches...added in sensors as uses the same code
+    for (q = 0; q < _CD4021TSwitchPinCount; q++) {  //work through the array of sensors
+
+      senRead = bitRead(_CD4021byteData[_CD4021PinTSwitch[q][0]], _CD4021PinTSwitch[q][1]);
+
+      if (senRead != _CD4021PinTSwitch[q][3]) {
+        _CD4021PinTSwitch[q][3] = senRead;
+        nowRail::sendAccessoryCommand(_CD4021PinTSwitch[q][2], _CD4021PinTSwitch[q][3], MESSRESPREQ);
+      }
+    }
+
 #endif
   }
 }
@@ -1179,17 +1206,12 @@ void nowRail::buttonsPressed(void) {
       //v0_3 mods gone back to shiftIn()
       //_CD4021byteData[q] = get4021Byte(_CD4021BoardPins[DATAPIN], _CD4021BoardPins[CLOCKPIN]);
       _CD4021byteData[q] = shiftIn(_CD4021BoardPins[DATAPIN], _CD4021BoardPins[CLOCKPIN], LSBFIRST);
-      //  Serial.print(q);
-      //  Serial.print(" : ");
-      //  Serial.println(_CD4021byteData[q],BIN);
     }
     //all data should be stored now so process it
     //buttons first
     for (q = 0; q < _CD4021PinCount; q++) {  //work through the array
 
       if (bitRead(_CD4021byteData[_CD4021PinButtons[q][0]], _CD4021PinButtons[q][1]) == 1) {
-        // Serial.print("pin: ");
-        // Serial.println(q);
         if (_CD4021PinButtons[q][5] > 3) {
           _CD4021PinButtons[q][5] = 3;  //set to target for this button press
         } else {
@@ -1198,6 +1220,8 @@ void nowRail::buttonsPressed(void) {
         nowRail::sendAccessoryCommand(_CD4021PinButtons[q][2], _CD4021PinButtons[q][_CD4021PinButtons[q][5]], MESSRESPREQ);  //1 response required
       }
     }
+
+    //1.7.0 toggle switches
 
 
 #endif
@@ -1283,6 +1307,33 @@ void nowRail::sendClockSpeedChange(byte clockSpeed) {
   sendFifoBuffer[sendWriteFifoCounter][MESSAGECLOCKSPEED] = clockSpeed;            //new clock speed 0 - 255
   incsendWriteFifoCounter();                                                       //new function with high byte update
 }
+
+void nowRail::sendClockTimeChange(byte hour, byte mins, byte seconds, byte day) {
+  if (hour > 23) {
+    hour = 0;
+  }
+  if (mins > 59) {
+    mins = 0;
+  }
+  if (seconds > 59) {
+    seconds = 0;
+  }
+  if (day > 6) {
+    day = 0;
+  }
+  memcpy(sendFifoBuffer[sendWriteFifoCounter], _transmissionPrefix, 10);           //set message prefix
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGELOWID] = sendWriteFifoCounter;       //MessageID
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGEHIGHID] = sendWriteHighFifoCounter;  //MessageID HIGH BYTE
+  sendFifoBuffer[sendWriteFifoCounter][MESSRESPONSE] = MESSRESPNOTREQ;             //Doesn't require response, could go to multiple panels
+  sendFifoBuffer[sendWriteFifoCounter][MESSTRANSCOUNT] = 0;                        //0 as new message
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGETYPE] = SETMASTERCLOCKTIME;          //FASTCLOCKUPDATE
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGECLOCKHOUR] = hour;                   //hour
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGECLOCKMIN] = mins;                    //min
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGECLOCKSEC] = seconds;                 //seconds
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGECLOCKDAY] = day;                     //day
+  incsendWriteFifoCounter();
+}
+
 
 // //Deals with setting time and time broadcaster if MASTERCLOCK_ON
 void nowRail::clockEvents(void) {
@@ -1381,10 +1432,6 @@ void nowRail::checkRecFifo(void) {
 
     //Is this message for this system?...check layout prefix
     if (recFifoBuffer[recReadFifoCounter][0] == _transmissionPrefix[0] && recFifoBuffer[recReadFifoCounter][1] == _transmissionPrefix[1] && recFifoBuffer[recReadFifoCounter][2] == _transmissionPrefix[2] && recFifoBuffer[recReadFifoCounter][3] == _transmissionPrefix[3]) {
-
-
-
-      //
       switch (recFifoBuffer[recReadFifoCounter][MESSAGETYPE]) {
         case TIMEUPDATE:
 
@@ -1406,9 +1453,9 @@ void nowRail::checkRecFifo(void) {
           Serial.print(" DAY");
           Serial.println(_timeArray[TIMEARRAYCLOCKDAY]);
 #endif
-      //1.4.2 lost wifi in here, looks for masterclock messages
+          //1.4.2 lost wifi in here, looks for masterclock messages
 #if defined(WIFIMASTERCLOCKCHANGE)
-      _lastWIFIMillis = _currentMillis;  //just keeps track of when last command was received
+          _lastWIFIMillis = _currentMillis;  //just keeps track of when last command was received
 #endif
 
           break;
@@ -1494,36 +1541,17 @@ void nowRail::checkRecFifo(void) {
             myBitSet = 0;
             for (q = 0; q < _S74HC595NPinAccCount; q++) {
               if (_S74HC595NPins[q][2] == accNum && _S74HC595NPins[q][3] == accInst) {
-                // for(int r=0;r<6;r++){
-                //     Serial.print(_S74HC595NPins[q][r]);
-                // Serial.print(" : ");
 
-                // }
-
-                //Serial.println("MATCH");
                 //set the bit in the byte array
                 if (_S74HC595NPins[q][5] == HIGH) {
-                  // Serial.print(_S74HC595NbyteData[_S74HC595NPins[q][0]],BIN);
-                  // Serial.print(" : ");
-                  // Serial.print( _S74HC595NPins[q][1]);
-                  // Serial.println(" bitSet");
-
                   bitSet(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
                 } else {
-                  // Serial.print(_S74HC595NbyteData[_S74HC595NPins[q][0]],BIN);
-                  // Serial.print(" : ");
-                  // Serial.print( _S74HC595NPins[q][1]);
-                  // Serial.println(" bitClear");
-
                   bitClear(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
                 }
-                //if(_S74HC595NPins[q][4] > 0){
+
                 _S74HC595NPins[q][6] = 1;
-                // }else{
-                // _S74HC595NPins[q][6] = 0;
-                //}
                 _S74HC595NPinAccMillis[q] = _currentMillis;
-                // q = _S74HC595NPinAccCount;//break out of loop
+
                 myBitSet = 1;  //set a flag that change has been made
               }
             }
@@ -1542,16 +1570,6 @@ void nowRail::checkRecFifo(void) {
             Serial.println(accInst);
 #endif
             //servos
-            // for (q = 0; q < _pca9685ServoCount; q++) {
-            //   if (_pca9685Servos[q][2] == accNum) {
-            //     if (accInst < 1) {
-            //       nowRail::setPCA695Servo(byte(_pca9685Servos[q][0]), byte(_pca9685Servos[q][1]), byte(_pca9685Servos[q][3]));
-            //     } else {
-            //       nowRail::setPCA695Servo(byte(_pca9685Servos[q][0]), byte(_pca9685Servos[q][1]), byte(_pca9685Servos[q][4]));
-            //     }
-            //     _accMoved = 1;  //was processed
-            //   }
-            // }
             //1.0.3 mods... old system used to set the servo, new version changes target and move takes place in loop
             //int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][8];  //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion)
 
@@ -1567,8 +1585,6 @@ void nowRail::checkRecFifo(void) {
                 _accMoved = 1;  //was processed
               }
             }
-
-
 
             for (q = 0; q < _pca9685LEDCount; q++) {
               if (_pca9685LEDS[q][2] == accNum) {  //if it's the correct acc number
@@ -1586,12 +1602,6 @@ void nowRail::checkRecFifo(void) {
 #endif
 
 #if defined(MP3BUSYPIN)
-            // _mp3Accessories[_mp3NumAccs][0] = accNum;
-            //     _mp3Accessories[_mp3NumAccs][1] = dirOn;
-            //     _mp3Accessories[_mp3NumAccs][2] = trackNum;
-            //     _mp3Accessories[_mp3NumAccs][3] = maxtrackNum;
-            //     _mp3Accessories[_mp3NumAccs][4] = mode;
-            //     _mp3Accessories[_mp3NumAccs][5] = play state
             for (q = 0; q < _mp3NumAccs; q++) {  //work through the accessories
               // Serial.print("TT Track: ");
               //     Serial.println(_mp3Accessories[q][2]);
@@ -1613,35 +1623,8 @@ void nowRail::checkRecFifo(void) {
                 }
                 _accMoved = 1;  //stop more transmissions
               }
-
-
-              //  if (_mp3Accessories[q][0] == accNum){
-              //     if(_mp3Accessories[q][1] == accInst){//activate
-              //       if(_mp3Accessories[q][4] > 0){//play group in order or random
-              //       //cancel off current playing sequence
-              //         for(int a = 0; a < MP3NUMTRACKS;a++){
-              //         _mp3Accessories[a][6] = 0;
-              //         }
-              //         _mp3Timer = _mp3Accessories[q][5];//set timer interval for main mp3 control system
-              //         _mp3Accessories[q][6] = 1;//set play state to 1 to play
-              //         _mp3AccPlaying = q; //set the current accessory play list
-              //       }else{  //play a single track...just play the track
-              //         nowRail::mp3PlayTrack(_mp3Accessories[q][2]);
-              //         _mp3Millis = _currentMillis;  //reset timer ready for next event to play
-              //       }
-              //       _accMoved = 1;//stop more transmissions
-              //     }else{//deactivate
-              //       _mp3Accessories[q][6] = 0;//set play state to Zero... will stop after current track
-              //     }
-              //   }
             }
-//   void mp3PlayVolume(int vol);
 
-//   int16_t _mp3CheckSum = 0;
-//   byte _mp3Command[6];
-//   byte _mp3CommandLength;
-//   unsigned long mp3Millis;
-//   int mp3Timer;
 #endif
 
             if (_accMoved > 0) {  //did I process this instruction? 1 = yes
@@ -2002,6 +1985,29 @@ void nowRail::checkRecFifo(void) {
           Serial.println("DIAG>WIFICHANNELCMD>Channel: " + String(newWifiChannel));
 #endif
           break;
+        case SETMASTERCLOCKTIME:  //1.5.0 mod allows time to be set
+#if defined(MASTERCLOCK_ON)       //code only runs if enabled
+          _timeArray[TIMEARRAYCLOCKHOUR] = recFifoBuffer[recReadFifoCounter][MESSAGECLOCKHOUR];
+          _timeArray[TIMEARRAYCLOCKMIN] = recFifoBuffer[recReadFifoCounter][MESSAGECLOCKMIN];
+          _timeArray[TIMEARRAYCLOCKSECONDS] = recFifoBuffer[recReadFifoCounter][MESSAGECLOCKSEC];
+          _timeArray[TIMEARRAYCLOCKDAY] = recFifoBuffer[recReadFifoCounter][MESSAGECLOCKDAY];
+
+
+#endif
+          Serial.print("DIAG> FASTCLOCKUPDATE > SETMASTERCLOCKTIME: ");
+          break;
+        case RFIDDATA:  //1.5.4 mod adds RFID data transmission
+#if defined(DIAGNOSTICS_ON)
+          Serial.println("DIAG>RFIDDATA");
+          uint8_t sendRFIDDataBytes[30];
+          if (nowRFIDDataRec)  //custom function
+
+            memcpy(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter] + RFIDDATASTART, recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
+          // nowRFIDDataRec( sendRFIDDataBytes,recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
+          //nowRFIDDataRec(uint8_t *incomingData, int len)
+          nowRFIDDataRec(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
+#endif
+          break;
         default:
           Serial.print("Unknown MessageType: ");
           Serial.println(recFifoBuffer[recReadFifoCounter][MESSAGETYPE]);
@@ -2013,7 +2019,6 @@ void nowRail::checkRecFifo(void) {
 }
 
 // //Processes incoming data from ESP-NOW into the recFifoBuffer
-
 //ESP32 2.0.17
 #if ESP_IDF_VERSION_MAJOR < 5                                                // IDF 4.xxx
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {  //problem line original
@@ -2046,59 +2051,58 @@ void nowRail::checkSendFifo(void) {
   int q;
   byte encKey1;
   byte encKey2;
-   //while (sendWriteFifoCounter != sendReadFifoCounter) {
+  //while (sendWriteFifoCounter != sendReadFifoCounter) {
   //1.4.0 adds a very slight slow down to transmissions, prevents buffer over run with bulk TX
-  if (sendWriteFifoCounter != sendReadFifoCounter) {           //check if there is a message to be processed
- 
+  if (sendWriteFifoCounter != sendReadFifoCounter) {  //check if there is a message to be processed
 
-      //Does this need to be responded to?
-      if (sendFifoBuffer[sendReadFifoCounter][MESSRESPONSE] == MESSRESPREQ) {  //covers replies and requests
-        //if response required copy message to repeatFif0Buffer                   //does this message require a response
-        memcpy(repeatFifoBuffer[writeRepeatFifoCounter], sendFifoBuffer[sendReadFifoCounter], PACKETLENGTH);  //copy the data to repeat fifo
 
-        //new feature 2.1
-        _repeatFifoMillis[writeRepeatFifoCounter] = _currentMillis;
-        //end feature
-        writeRepeatFifoCounter++;
-      }
-      //Place 2 random values in the packet
-      //Keys are added to all packets, encrypted or not
-      //sendFifoBuffer[sendReadFifoCounter][48] = random(256);  //key1 1.4.0 mod
-      //sendFifoBuffer[sendReadFifoCounter][49] = random(256);  //key2 1.4.0 mod
+    //Does this need to be responded to?
+    if (sendFifoBuffer[sendReadFifoCounter][MESSRESPONSE] == MESSRESPREQ) {  //covers replies and requests
+      //if response required copy message to repeatFif0Buffer                   //does this message require a response
+      memcpy(repeatFifoBuffer[writeRepeatFifoCounter], sendFifoBuffer[sendReadFifoCounter], PACKETLENGTH);  //copy the data to repeat fifo
 
-      //Encryption needs to go in here as refFifoBuffer should be full of encrypted messages
+      //new feature 2.1
+      _repeatFifoMillis[writeRepeatFifoCounter] = _currentMillis;
+      //end feature
+      writeRepeatFifoCounter++;
+    }
+    //Place 2 random values in the packet
+    //Keys are added to all packets, encrypted or not
+    //sendFifoBuffer[sendReadFifoCounter][48] = random(256);  //key1 1.4.0 mod
+    //sendFifoBuffer[sendReadFifoCounter][49] = random(256);  //key2 1.4.0 mod
+
+    //Encryption needs to go in here as refFifoBuffer should be full of encrypted messages
 #if defined(ENCRYPT)  //encrypt routine in here 1.4.0
 
-      //now choose which of the values to use
+    //now choose which of the values to use
 
-      encKey1 = sendFifoBuffer[sendReadFifoCounter][48];
-      encKey1 = encKey1 - sendFifoBuffer[sendReadFifoCounter][MESSAGETYPE];
+    encKey1 = sendFifoBuffer[sendReadFifoCounter][48];
+    encKey1 = encKey1 - sendFifoBuffer[sendReadFifoCounter][MESSAGETYPE];
 
-      encKey2 = sendFifoBuffer[sendReadFifoCounter][49];
-      encKey2 = encKey2 + sendFifoBuffer[sendReadFifoCounter][MESSAGELOWID];
+    encKey2 = sendFifoBuffer[sendReadFifoCounter][49];
+    encKey2 = encKey2 + sendFifoBuffer[sendReadFifoCounter][MESSAGELOWID];
 
 
-      sendFifoBuffer[sendReadFifoCounter][0] = sendFifoBuffer[sendReadFifoCounter][0] - encKey1;  //add the encryption key
-      sendFifoBuffer[sendReadFifoCounter][1] = sendFifoBuffer[sendReadFifoCounter][1] + encKey2;  //add the encryption key
-      sendFifoBuffer[sendReadFifoCounter][2] = sendFifoBuffer[sendReadFifoCounter][2] + encKey1;  //add the encryption key
-      sendFifoBuffer[sendReadFifoCounter][3] = sendFifoBuffer[sendReadFifoCounter][3] - encKey2;  //add the encryption key
+    sendFifoBuffer[sendReadFifoCounter][0] = sendFifoBuffer[sendReadFifoCounter][0] - encKey1;  //add the encryption key
+    sendFifoBuffer[sendReadFifoCounter][1] = sendFifoBuffer[sendReadFifoCounter][1] + encKey2;  //add the encryption key
+    sendFifoBuffer[sendReadFifoCounter][2] = sendFifoBuffer[sendReadFifoCounter][2] + encKey1;  //add the encryption key
+    sendFifoBuffer[sendReadFifoCounter][3] = sendFifoBuffer[sendReadFifoCounter][3] - encKey2;  //add the encryption key
 
 #endif  //end of 1.4.0 mods
 
-      //New feature 08/03/24...copies message to Receive FIFO so that the board could process it's own commands...double ended analogue system
-      memcpy(recFifoBuffer[recWriteFifoCounter], sendFifoBuffer[sendReadFifoCounter], PACKETLENGTH);
-      recWriteFifoCounter++;
-      //end feature
+    //New feature 08/03/24...copies message to Receive FIFO so that the board could process it's own commands...double ended analogue system
+    memcpy(recFifoBuffer[recWriteFifoCounter], sendFifoBuffer[sendReadFifoCounter], PACKETLENGTH);
+    recWriteFifoCounter++;
+    //end feature
 
 
 
-      //Now send
-      //The data isn't copied into a structure, it's transmitted straight from the sendFifiBuffer
+    //Now send
+    //The data isn't copied into a structure, it's transmitted straight from the sendFifiBuffer
 
-      esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&sendFifoBuffer[sendReadFifoCounter], PACKETLENGTH);
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&sendFifoBuffer[sendReadFifoCounter], PACKETLENGTH);
 
-      sendReadFifoCounter++;  //move to next item to be read...and transmitted
-    
+    sendReadFifoCounter++;  //move to next item to be read...and transmitted
   }
   //NOw check if any repeated messages need to be loaded back into the send buffer
   //Checks individual message times to speed up system
@@ -2148,8 +2152,8 @@ void nowRail::runLayout(void) {
         _currentWIFIChannel = 1;
         break;
     }
-    Serial.println("Looking for Layout on Channel: "+String(_currentWIFIChannel));
-    WiFi.setChannel(_currentWIFIChannel);  //change to next channel
+    Serial.println(getnowRailAddr() + " Looking for Layout on Channel: " + String(_currentWIFIChannel));
+   WiFi.setChannel(_currentWIFIChannel);  //change to next channel
     _lastWIFIMillis = _currentMillis;      //reset to try again
   }
 #endif
@@ -2476,129 +2480,101 @@ void nowRail::accDecoder(byte AddressByte, byte InstructionByte, byte ErrorByte)
 
 #if defined(GT911)
 
-TouchLocation touchLocations[5];
-//Screen address for GT911
-//uint8_t addr  = 0x5d;  //CTP IIC ADDRESS
-//Pins
-//int GT911_RESET = 15;   //CTP RESET
-//int GT911_INT =   2;   //CTP  INT
-uint8_t addr;  //CTP IIC ADDRESS
-//Pins
-int GT911_RESET;  //CTP RESET
-int GT911_INT;    //CTP  INT
-
-
-//I have included debounce as it makes the output easier to read and means it is set up for those building model railway control panels
-unsigned long captouchbounce = 0;  //like button bounce for touch
-int captouched = 0;                //1 means there has been a touch
-//X and Y positions that will be used in further programming
-int captouchx = 0;
-int captouchy = 0;
-int lastpixeltouched = 1000;  //keeps track of the last touched pixel to prevent excess bounce
-
-//This is some data that is needed to configure the GT911 touch screen...not my work.
-unsigned char GTP_CFG_DATA[] = {
-  0x5A, 0x20, 0x03, 0xE0, 0x01, 0x05, 0x0D, 0x00,
-  0x01, 0x08, 0x28, 0x08, 0x50, 0x32, 0x03, 0x05,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x88, 0x29, 0x0A, 0x35, 0x37,
-  0xD3, 0x07, 0x00, 0x00, 0x01, 0x81, 0x02, 0x1D,
-  0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x64, 0x32,
-  0x00, 0x00, 0x00, 0x28, 0x5A, 0x94, 0xC5, 0x02,
-  0x00, 0x00, 0x00, 0x00, 0x98, 0x2B, 0x00, 0x84,
-  0x33, 0x00, 0x74, 0x3C, 0x00, 0x67, 0x46, 0x00,
-  0x5C, 0x53, 0x00, 0x5C, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10,
-  0x12, 0x14, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
-  0x04, 0x06, 0x08, 0x0F, 0x10, 0x12, 0x16, 0x18,
-  0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0xFF,
-  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x25, 0x01
-};
-
-uint8_t buf[80];
-
-
-void nowRail::addGT911Screen(int GT911ResetPin, int GT911IntPin) {
-
-  gt911setup(GT911ResetPin, GT911IntPin);
-}
-
 //Function to initialise the GT911 touch screen
-void gt911setup(int GT911ResetPin, int GT911IntPin) {
-  GT911_RESET = GT911ResetPin;  //CTP RESET
-  GT911_INT = GT911IntPin;      //CTP  INT
-  addr = GT911;
+void nowRail::addGT911Screen(int GT911ResetPin, int GT911IntPin) {
+  unsigned char _GTP_CFG_DATA[] = {
+    0x5A, 0x20, 0x03, 0xE0, 0x01, 0x05, 0x0D, 0x00,
+    0x01, 0x08, 0x28, 0x08, 0x50, 0x32, 0x03, 0x05,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x88, 0x29, 0x0A, 0x35, 0x37,
+    0xD3, 0x07, 0x00, 0x00, 0x01, 0x81, 0x02, 0x1D,
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0x64, 0x32,
+    0x00, 0x00, 0x00, 0x28, 0x5A, 0x94, 0xC5, 0x02,
+    0x00, 0x00, 0x00, 0x00, 0x98, 0x2B, 0x00, 0x84,
+    0x33, 0x00, 0x74, 0x3C, 0x00, 0x67, 0x46, 0x00,
+    0x5C, 0x53, 0x00, 0x5C, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10,
+    0x12, 0x14, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+    0x04, 0x06, 0x08, 0x0F, 0x10, 0x12, 0x16, 0x18,
+    0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x25, 0x01
+  };
+  _GT911_RESET = GT911ResetPin;  //CTP RESET
+  _GT911_INT = GT911IntPin;      //CTP  INT
+  _addr = GT911;
+  uint8_t re = 0;
   Wire.begin();
-  delay(300);
-  pinMode(GT911_RESET, OUTPUT);
-  pinMode(GT911_INT, OUTPUT);
-  digitalWrite(GT911_RESET, LOW);
-  delay(20);
-  digitalWrite(GT911_INT, LOW);
+  delay(250);
+  pinMode(_GT911_RESET, OUTPUT);
+  pinMode(_GT911_INT, OUTPUT);
+  digitalWrite(_GT911_RESET, LOW);
+  //delay(20);
+  digitalWrite(_GT911_INT, LOW);
+  delay(10);
+  digitalWrite(_GT911_RESET, HIGH);
+  delay(6);
+  pinMode(_GT911_RESET, INPUT);
   delay(50);
-  digitalWrite(GT911_RESET, HIGH);
-  delay(100);
-  pinMode(GT911_RESET, INPUT);
-  delay(100);
-  uint8_t re = GT911_Send_Cfg((uint8_t *)GTP_CFG_DATA, sizeof(GTP_CFG_DATA));
-  pinMode(GT911_RESET, OUTPUT);
-  pinMode(GT911_INT, OUTPUT);
-  digitalWrite(GT911_RESET, LOW);
-  delay(20);
-  digitalWrite(GT911_INT, LOW);
+  re = nowRail::GT911_Send_Cfg((uint8_t *)_GTP_CFG_DATA, sizeof(_GTP_CFG_DATA));
+  pinMode(_GT911_RESET, OUTPUT);
+  pinMode(_GT911_INT, OUTPUT);
+  digitalWrite(_GT911_RESET, LOW);
+  //delay(20);
+  digitalWrite(_GT911_INT, LOW);
+  delay(10);
+  digitalWrite(_GT911_RESET, HIGH);
+  delay(6);
+  pinMode(_GT911_INT, INPUT);
   delay(50);
-  digitalWrite(GT911_RESET, HIGH);
-  delay(100);
-  pinMode(GT911_INT, INPUT);
-  delay(100);
-  re = GT911_Send_Cfg((uint8_t *)GTP_CFG_DATA, sizeof(GTP_CFG_DATA));
+  re = nowRail::GT911_Send_Cfg((uint8_t *)_GTP_CFG_DATA, sizeof(_GTP_CFG_DATA));
   uint8_t bb[2];
-  readGT911TouchAddr(0x8047, bb, 2);
+  nowRail::readGT911TouchAddr(0x8047, bb, 2);
   while (bb[1] != 32) {
     Serial.println("Capacitive touch screen initialized failure");
-    pinMode(GT911_RESET, OUTPUT);
-    pinMode(GT911_INT, OUTPUT);
-    digitalWrite(GT911_RESET, LOW);
-    delay(20);
-    digitalWrite(GT911_INT, LOW);
+    pinMode(_GT911_RESET, OUTPUT);
+    pinMode(_GT911_INT, OUTPUT);
+    digitalWrite(_GT911_RESET, LOW);
+    //delay(20);
+    digitalWrite(_GT911_INT, LOW);
+    delay(10);
+    digitalWrite(_GT911_RESET, HIGH);
+    delay(6);
+    pinMode(_GT911_INT, INPUT);
     delay(50);
-    digitalWrite(GT911_RESET, HIGH);
-    delay(100);
-    pinMode(GT911_INT, INPUT);
-    delay(100);
-    uint8_t re = GT911_Send_Cfg((uint8_t *)GTP_CFG_DATA, sizeof(GTP_CFG_DATA));
+    uint8_t re = nowRail::GT911_Send_Cfg((uint8_t *)_GTP_CFG_DATA, sizeof(_GTP_CFG_DATA));
   }
   Serial.println("Capacitive touch screen  initialized success");
 }
 
 
-
-
-
-uint8_t GT911_Send_Cfg(uint8_t *buf, uint16_t cfg_len) {
+uint8_t nowRail::GT911_Send_Cfg(uint8_t *buf, uint16_t cfg_len) {
   uint8_t retry = 0;
   for (retry = 0; retry < 5; retry++) {
-    writeGT911TouchRegister(0x8047, buf, cfg_len);
+    nowRail::writeGT911TouchRegister(0x8047, buf, cfg_len);
     //if(ret==0)break;
     delay(10);
   }
   return retry;
 }
 
-//function that writes to the GT911...do not edit
-void writeGT911TouchRegister(uint16_t regAddr, uint8_t *val, uint16_t cnt) {
+
+
+
+
+
+void nowRail::writeGT911TouchRegister(uint16_t regAddr, uint8_t *val, uint16_t cnt) {
   uint16_t i = 0;
 
-  Wire.beginTransmission(addr);
+  Wire.beginTransmission(_addr);
   Wire.write(regAddr >> 8);         // register 0
   Wire.write(regAddr);              // register 0
   for (i = 0; i < cnt; i++, val++)  //data
@@ -2609,16 +2585,16 @@ void writeGT911TouchRegister(uint16_t regAddr, uint8_t *val, uint16_t cnt) {
 }
 
 //function that reads from the GT911...do not edit
-uint8_t readGT911TouchAddr(uint16_t regAddr, uint8_t *pBuf, uint8_t len) {
+uint8_t nowRail::readGT911TouchAddr(uint16_t regAddr, uint8_t *pBuf, uint8_t len) {
   uint8_t i;
   uint8_t returned;
   uint8_t retVal;
-  Wire.beginTransmission(addr);
+  Wire.beginTransmission(_addr);
   Wire.write(regAddr >> 8);  // register 0
   Wire.write(regAddr);       // register 0
   retVal = Wire.endTransmission();
 
-  returned = Wire.requestFrom(addr, len);  // request 1 bytes from slave device #2
+  returned = Wire.requestFrom(_addr, len);  // request 1 bytes from slave device #2
   for (i = 0; (i < len) && Wire.available(); i++)
 
   {
@@ -2629,8 +2605,10 @@ uint8_t readGT911TouchAddr(uint16_t regAddr, uint8_t *pBuf, uint8_t len) {
 
 
 
+
+
 ////function that works out the touch coordinates for GT911...do not edit
-uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num) {
+uint8_t nowRail::readGT911TouchLocation(TouchLocation *pLoc, uint8_t num) {
   uint8_t retVal;
   uint8_t i;
   uint8_t k;
@@ -2640,7 +2618,7 @@ uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num) {
     if (!num) break;   // must be able to take at least one
     ss[0] = 0;
 
-    readGT911TouchAddr(0x814e, ss, 1);
+    nowRail::readGT911TouchAddr(0x814e, ss, 1);
     uint8_t status = ss[0];
 
     if ((status & 0x0f) == 0) break;  // no points detected
@@ -2650,8 +2628,8 @@ uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num) {
 
     uint8_t tbuf[40];  //changed to 40 as that is number called for in  readGT911TouchAddrTest( 0x8150, tbuf, 40);
     uint8_t tbuf1[8];
-    readGT911TouchAddr(0x8150, tbuf, 40);
-    readGT911TouchAddr(0x8150 + 32, tbuf1, 8);
+    nowRail::readGT911TouchAddr(0x8150, tbuf, 40);
+    nowRail::readGT911TouchAddr(0x8150 + 32, tbuf1, 8);
 
     for (k = 0, i = 0; (i < 4 * 8) && (k < num); k++, i += 8) {
       pLoc[k].x = tbuf[i + 1] << 8 | tbuf[i + 0];
@@ -2665,49 +2643,42 @@ uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num) {
   } while (0);
 
   ss[0] = 0;
-  writeGT911TouchRegister(0x814e, ss, 1);
+  nowRail::writeGT911TouchRegister(0x814e, ss, 1);
 
-  delay(2);
+  //delay(2);
   return retVal;
 }
 
-
 //Function that uses the functions above to give a simple X/Y position to be used in your code
-void checkfortouchscreen() {
+//rerwritten for version 1.5.0 due to issues with ESP32 v3.2.0 or greater
+void nowRail::checkfortouchscreen() {
 
-  captouched = 0;
-  pinMode(GT911_INT, INPUT);
-  uint8_t st = digitalRead(GT911_INT);
+  uint16_t newcaptouchx = 0;
+  uint16_t newcaptouchy = 0;
+  unsigned long capCurrentMillis = millis();
+  _captouched = 0;
+  pinMode(_GT911_INT, INPUT);
+  uint8_t st = digitalRead(_GT911_INT);
   if (!st)  //Hardware touch interrupt
   {
-    //Serial.println("Touch: ");
 
-    //This line gives the number of touch points
     //Screen can deal with 5 touches at once
-    uint8_t count = readGT911TouchLocation(touchLocations, 5);
-    /*
-      if(count > 0){
-      Serial.print("Touches: ");
-      Serial.println(count);
-      }
-    */
-
-    if (count) {
+    uint8_t count = nowRail::readGT911TouchLocation(touchLocations, 5);
+    if (count != 0) {
+      // Serial.println(count);
       static TouchLocation caplastTouch = touchLocations[0];  // only take single touch, not dealing with multitouch
       caplastTouch = touchLocations[0];
-      if (millis() > captouchbounce) {    //cuts out multitouch
-        captouchbounce = millis() + 250;  //250 is the debounce, lower makes more sensitive but more false touches
+      if (capCurrentMillis - _captouchbounce >= BUTTONDEBOUNCE) {  //cuts out multitouch
+        _captouchbounce = capCurrentMillis;
 
         //only using first touch for now
-        if (touchLocations[0].x > 0 && touchLocations[0].y > 0) {  //only do something if there is an x and Y value
-          captouched = 1;
-          captouchx = touchLocations[0].x;
-          captouchy = touchLocations[0].y;
-          //X and Y positions sent to serial monitor
-          // Serial.print(captouchx);
-          // Serial.print(" : ");
-          // Serial.println(captouchy);
-          nowGT911Touch(captouchx, captouchy);
+        newcaptouchx = touchLocations[0].x;  //I only want 1 touch
+        newcaptouchy = touchLocations[0].y;  //I only want 1 touch
+        if (_captouchx != newcaptouchx || _captouchy != newcaptouchy) {
+          _captouched = 1;
+          _captouchx = newcaptouchx;
+          _captouchy = newcaptouchy;
+          nowGT911Touch(_captouchx, _captouchy);
         }
       }
     }
@@ -2730,11 +2701,11 @@ void nowRail::addGT911Button(int xPos, int yPos, int accNum, int press1, int pre
 void nowRail::GT911ProcessButtons() {
   int q;
   checkfortouchscreen();  //keep looking for screen touches
-  if (captouched > 0) {
+  if (_captouched > 0) {
     //Serial.println(captouchx);
     //Serial.println(captouchy);
     for (q = 0; q < _GT911ButtonCount; q++) {
-      if (captouchx > (_GT911Buttons[q][0] - GT911TOUCHRADIUS) && captouchx < (_GT911Buttons[q][0] + GT911TOUCHRADIUS) && captouchy > (_GT911Buttons[q][1] - GT911TOUCHRADIUS) && captouchy < (_GT911Buttons[q][1] + GT911TOUCHRADIUS)) {
+      if (_captouchx > (_GT911Buttons[q][0] - GT911TOUCHRADIUS) && _captouchx < (_GT911Buttons[q][0] + GT911TOUCHRADIUS) && _captouchy > (_GT911Buttons[q][1] - GT911TOUCHRADIUS) && _captouchy < (_GT911Buttons[q][1] + GT911TOUCHRADIUS)) {
         //Serial.print("GT: ");
         //Serial.println(q);
         if (_GT911Buttons[q][5] > 3) {
@@ -3388,3 +3359,24 @@ void nowRail::locoRXAllLocoData(int state) {
 }
 //byte _locoBulkDataRXFlag;//1 = waiting to receive data
 //byte _locoBulkDataRXPos;
+
+//RFID data
+void nowRail::sendRFIDData(uint8_t rfidData[], uint8_t len) {                        //receives and transmits data
+  if (len < 31) {                                                                    //max 30 byes
+    memcpy(sendFifoBuffer[sendWriteFifoCounter], _transmissionPrefix, 10);           //set message prefix
+    sendFifoBuffer[sendWriteFifoCounter][MESSAGELOWID] = sendWriteFifoCounter;       //MessageID
+    sendFifoBuffer[sendWriteFifoCounter][MESSAGEHIGHID] = sendWriteHighFifoCounter;  //MessageID HIGH BYTE
+    sendFifoBuffer[sendWriteFifoCounter][MESSRESPONSE] = MESSRESPNOTREQ;             //Doesn't require response, could go to multiple panels
+    sendFifoBuffer[sendWriteFifoCounter][MESSTRANSCOUNT] = 0;                        //0 as new message
+    sendFifoBuffer[sendWriteFifoCounter][MESSAGETYPE] = RFIDDATA;                    //FASTCLOCKUPDATE
+    sendFifoBuffer[sendWriteFifoCounter][RFIDNUMBYTES] = len;                        //send length of data
+    memcpy(sendFifoBuffer[sendWriteFifoCounter] + RFIDDATASTART, rfidData, len);
+
+    incsendWriteFifoCounter();
+
+  } else {  //send error message and DO NOT transmit
+    Serial.print("ERROR> sendRFIDData  too much data, max 30 bytes ");
+    Serial.print(len);
+    Serial.println(" sent");
+  }
+}

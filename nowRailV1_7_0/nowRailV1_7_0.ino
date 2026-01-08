@@ -1,6 +1,6 @@
-/*nowRailV1_6_0
-20/12/2025
-RFID tags data transfer
+/*nowRailV1_7_0
+01/01/2026
+
 
 MIT License
 Copyright (c) 2025 Simon Coward
@@ -42,6 +42,7 @@ void setup() {
   //Start the system
   myLayout.init();//This functions sets up ESP-NOW as well as other items needed for the system to run
   //myLayout.sendClockSpeedChange(1);//set clock speed to 1 for testing
+  
   
 }
 

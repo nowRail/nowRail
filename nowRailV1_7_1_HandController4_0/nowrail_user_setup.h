@@ -1,7 +1,6 @@
-/*nowRailV1_6_0
-20/12/2025
+/*nowRailV1_7_1
+06/01/2026
 */
-
 #pragma once
 
 //WIFI added in Version 1.4.4
@@ -76,14 +75,14 @@
 //I2C Devices...........................................................
 
 //All I2C devices need the Wire.h uncommented
-//#include "Wire.h"
+#include "Wire.h"
 
 //EEPROM...........................................................
 //See https://www.digitaltown.co.uk/nowRail.php#EEPROM
 //NowRail uses EEPROM to store MASTERCLOCK time if you want to restart at the same time when restarting layout
 //EEPROM is also used in the loco controller to store the loco data
 //just put in the default eeprom address
-//#define NOWDisc 0x50    //Default Address of 24LC256 eeprom chip in Board
+#define NOWDisc 0x50    //Default Address of 24LC256 eeprom chip in Board
 //END EEPROM
 
 //PCA9685..............................................
@@ -110,7 +109,9 @@
 //CD4021 Shift registers.... to allow extra inputs, could be for control panel or sensors.
 //See https://www.digitaltown.co.uk/nowRail.php#CD4021
 #define NUMCD4021CHIPS 1 //Number of chips daisy chained...system will auto build the array
-#define NUMCD4021CHIPSNUMBUTTONS 10 //Although only 8 pins per chip allow some space in case you want a pin to call multiple accs
+#define NUMCD4021CHIPSNUMBUTTONS 2 //Although only 8 pins per chip allow some space in case you want a pin to call multiple accs
+//1.7.0 ToggleSwitches
+#define NUMCD4021CHIPSNUMTSWITCH 2 // Toggle switches Although only 8 pins per chip allow some space in case you want a pin to call multiple accs
 
 //74HC595N SHIFT REGISTERS....to allow more outputs
 //See https://www.digitaltown.co.uk/nowRail.php#74HC595N
@@ -124,4 +125,3 @@
 
 //See https://www.digitaltown.co.uk/nowRail.php#TURNOUTPULSE
 #define TURNOUTPULSE 500  //0.5 second pin HIGH to switch point/turnout
-
