@@ -1,5 +1,5 @@
-/*nowRailV1_7_0
-01/01/2026
+/*nowRailV1_8_3
+10/01/26
 
    This tab contains custom functions that are called when nowrail receives commands.
    This allows users to write their own code driven by these events using the varibles passed.
@@ -67,12 +67,24 @@ void nowPanelUpdate(int accNum, byte accInst) {
 
 //As sensors are triggered this function allows users to trigger animations or anything the user requires.
 //Outputs sensor updates
-void nowSensorUpdate(int senNum, byte senInst) {
+//1.8.1 now allows int32_t senInst
+void nowSensorUpdate(int senNum, int32_t senInst) {
   //Uncomment to see sensor traffic
   Serial.print("sensor: ");
   Serial.print(senNum);
   Serial.print(" : ");
   Serial.println(senInst);
+  //example of how to use sensor
+  // switch(senNum){
+  //   case 112:
+  //     myLayout.sensorProcessed();//let system know I've dealt with it and stop repeating
+  //     break;
+  //   case 115:
+  //     myLayout.sensorProcessed();//let system know I've dealt with it and stop repeating
+  //     break;
+  //   default:
+  //     break;
+  // }
 }
 
 //Layout Clock----------------------------------------------------------------------------------------------------
@@ -101,7 +113,8 @@ void nowTimeEvents(byte clockSpeed, byte clockHour, byte clockMinute, byte clock
   // Serial.print(" Day: ");
   // Serial.print(clockDay);
   // Serial.println(" ");
-   
+
+
 }
 
 //Loco commands...................................................................

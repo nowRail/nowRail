@@ -1,5 +1,5 @@
-/*nowRailV1_7_0
-01/01/2026
+/*nowRailV1_8_3
+10/01/26
 */
 
 #pragma once
@@ -31,7 +31,10 @@
 //https://www.digitaltown.co.uk/nowRail.php#MASTERCLOCK
 //Only one board should be MASTERCLOCK_ON... This really needs to be a board that is ALWAYS turned on.
 //A MASTERCLOCK board is required for if WIFIMASTERCLOCKCHANGE is being used
-//#define MASTERCLOCK_ON    //this board is the master clock and will send out a broadcast to sync all other boards
+#define MASTERCLOCK_ON    //this board is the master clock and will send out a broadcast to sync all other boards
+//1.8.3
+//#define REDUCEMASTERCLOCKDIAG //This reduces Masterclock messages to once per minute... reduced clutter when doing diagnostics
+
 
 //SERIAL Devices.........................................
 //nowRail use Serial2.... WARNING  some boards DO NOT have Serial 2
@@ -99,6 +102,7 @@
 //See https://www.youtube.com/watch?v=0s4-Wp4rPuw
 // #define GT911 0x5D  //Uncomment for gt911 touch screen
 // #define GT911TOUCHBUTTONS 30  //sets the touch point buttons, increase for more buttons.
+//IMPORTANT If multiple toucj points trigger at the same time reduce the value of GT911TOUCHRADIUS in the line below
 // #define GT911TOUCHRADIUS 35   //35 is approx 5mm either side of the centre touch point
 
 

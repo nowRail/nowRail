@@ -1,5 +1,19 @@
-/*nowRailV1_7_0
-01/01/2026
+/*nowRailV1_8_3
+10/01/26
+Sensors Working with stdpins and CD4021 pins
+
+new definitions
+#define REDUCEMASTERCLOCKDIAG
+
+New functions
+void sendDCCEXCustomCmd(String cmdString);//will allow up to 30 bytes per command
+
+void sensorCustomValue(uint16_t senNum, int16_t senValue); //send a custom value from sensor
+void sensorProcessed(void);
+
+mod senInst now int32_t
+extern void nowSensorUpdate(int senNum, int16_t senInst) __attribute__((weak));  
+
 
 
 MIT License

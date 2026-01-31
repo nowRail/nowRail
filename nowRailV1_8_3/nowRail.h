@@ -1,5 +1,5 @@
-/*nowRailV1_7_0
-01/01/2026
+/*nowRailV1_8_3
+10/01/26
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -51,6 +51,9 @@
 #define WIFICHANNELCMD 11      //WIFI channel change command
 #define SETMASTERCLOCKTIME 12  //Command that will only be processed by MASTERCLOCK,,, sets time and day
 #define RFIDDATA 13  //command that holds RFID data packet 
+//#define DCCEXCREATESENSOR 14  //command that holds sets up a virtual pin sensor
+#define ANALOGUESENSORUPDATE 14  //allows transmission of sensor values
+#define DCCEXCUSTOMCMD 15  //allows 30 bytes of custom data
 
 //RFID data format byte 17 data length, bytes 18-47 carries data
 #define RFIDNUMBYTES 16
@@ -98,6 +101,11 @@
 #define SENADDRHIGH 16  //address high bytee
 #define SENADDRLOW 17   //address low byte       //get low byte
 #define SENINST 18      //address instruction...usually 1 or 0
+
+//ANALOGUESENSORUPDATE
+//#define SENADDRHIGH 16  //address high bytee As obove
+//#define SENADDRLOW 17   //address low byte  
+//data from 18 - 21  HIGH to LOW     
 
 //1.4.2
 //WIFICHANNEL
@@ -175,12 +183,16 @@ public:
   void sendAccessoryCommand(int accNum, byte accInst, byte respReq);            //sends an accessory command
   void addStdPinButton(int pin, int accNum, int press1, int press2);            //adds standard pin buttons to system
   void addStdPinAcc(int pin, int accNum, int dir, int pulse, int setpinState);  //Adds std pin accessories to system
-
+  
   void sendSensorUpdate(int senNum, byte senInst);  //Sends a sensor update
   void addStdPinSensor(int pin, int senNum);
   //1.7.0
   void addStdPinTSwitch(int pin, int accNum);
-
+   //1.8.1
+ // void setupDCCEXSensor(uint16_t senNum); //function to set up a new virtual sensor in DCCEX...will send when any sensor set up
+  void sensorCustomValue(uint16_t senNum, int32_t senValue); //Allows user to send custom value to a sensor
+  void sendDCCEXCustomCmd(String cmdString);//will allow up to 30 bytes per command
+  void sensorProcessed(void);//1.8.3
 
 #if defined(NUMCD4021CHIPS)
   void setupCD4021(int latchPin, int clockPin, int dataPin);                       // Sets up the pins
@@ -238,6 +250,7 @@ private:
   byte _stdPinButtonsCount;             //how many buttons have been added to system
 
   //Sensors
+  //byte _senProcessed; 
   unsigned long _sensorDebounceMillis;
   void sensorEvents(void);          //go through sensors
   int _stdPinSensors[50][3];        //pin, senNum, LastState
@@ -339,7 +352,7 @@ private:
   byte recReadFifoCounter;
   // //Holds command to be sent out
   void checkSendFifo(void);
-
+  void sendMessResp(void);
   void incsendWriteFifoCounter(void);
   byte sendFifoBuffer[256][PACKETLENGTH];  //Way more than needed but better safe than sorry
   byte sendWriteFifoCounter;               //keeps track of current write position
@@ -513,7 +526,7 @@ extern "C" {
   extern void nowMomentButton(void) __attribute__((weak));                                                 //Function for reading momentary button presses
   extern void nowPowerCommand(byte Command) __attribute__((weak));                                         //Function controlling base station power
   extern void nowGT911Touch(int xPos, int yPos) __attribute__((weak));                                     //reports GT911 touches
-  extern void nowSensorUpdate(int senNum, byte senInst) __attribute__((weak));                             //sensor updates
+  extern void nowSensorUpdate(int senNum, int32_t senInst) __attribute__((weak));                             //sensor updates
   extern void nowClockSpeedUpdate(void) __attribute__((weak));                                             //clock speed updates
   extern void nowLocoFuncUpdate(int nowLocoID, byte nowFuncNum, byte nowFuncState) __attribute__((weak));  //receives loco function updates..for updating controllers
   extern void nowLocoSpeedUpdate(int locoAddr, byte locoSpeed, byte locoDir) __attribute__((weak));        //receives loco function updates..for updating controllers
