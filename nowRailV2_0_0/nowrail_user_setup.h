@@ -1,5 +1,5 @@
-/*nowRailV1_9_3
-13/02/2026
+/*nowRailV2_0_0
+15/05/2026
 */
 
 #pragma once
@@ -26,6 +26,10 @@
 //Diagnostics shows the nowRail commands in the Serial monitor
 //WARNING:DO NOT USE WHEN CONNECTED TO JMRICMRI...diagnostics will be sent to JMRI :-(
 #define DIAGNOSTICS_ON    //Will display all incoming messages in Serial with DIAG> Prefix 
+
+//Delayed Accessories
+//Delayed accessories allow for accessories to be triggered after a time period
+#define NUMDELAYEDACCS 10 //If defined Sets the number of delayed accessories that can be set up.  
 
 //MASTERCLOCK
 //https://www.digitaltown.co.uk/nowRail.php#MASTERCLOCK
@@ -93,14 +97,14 @@
 //For servos see https://youtu.be/khPnUbnIN88
 //For LEDs see https://youtu.be/xKgqPWWVrK8
 //used for Servos and LED's NOTE: LED's and servos CANNOT be on the same board address
-// #define MAXPCA9685SERVOBOARDS 5 //default is 1, increase if required
-// #define SERVOMIN 450    //servo min value
-// #define SERVOMAX 2000   //servo max value
+//#define MAXPCA9685SERVOBOARDS 5 //default is 1, increase if required
+#define SERVOMIN 450    //servo min value
+#define SERVOMAX 2000   //servo max value
 //see https://www.digitaltown.co.uk/nowRail.php#PCA9685Servo for more information
-// #define PCA9685SERVODETACH 600 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
+#define PCA9685SERVODETACH 600 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
 //See https://www.digitaltown.co.uk/nowRail.php#PCA9685Led for more information
-// #define PCA9685FLASHTIMER 1000 //any flashing PCS 9685 panel LED or accessory Leds flash timing in milliseconds
-// #define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode
+#define PCA9685FLASHTIMER 1000 //any flashing PCS 9685 panel LED or accessory Leds flash timing in milliseconds
+#define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode
 
 //GT911 Touch Screen.....................................................
 //See https://www.youtube.com/watch?v=0s4-Wp4rPuw

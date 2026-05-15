@@ -1,5 +1,5 @@
-/*nowRailV1_7_1
-06/01/2026
+/*nowRailV2_0_0
+15/05/2026
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -51,6 +51,31 @@
 #define WIFICHANNELCMD 11      //WIFI channel change command
 #define SETMASTERCLOCKTIME 12  //Command that will only be processed by MASTERCLOCK,,, sets time and day
 #define RFIDDATA 13  //command that holds RFID data packet 
+//#define DCCEXCREATESENSOR 14  //command that holds sets up a virtual pin sensor
+#define ANALOGUESENSORUPDATE 14  //allows transmission of sensor values
+#define DCCEXCUSTOMCMD 15  //allows 30 bytes of custom data
+#define SETCONSIST 16  //send consist creation data to ex rail /nce
+#define UNSETCONSIST 17 //send command to break consist
+
+//#define SETCONSIST 16
+#define CONSISTNUMLOCOS 16
+#define CONSISTADDRHIGH 17  //address high byte...consist address
+#define CONSISTADDRLOW 18   //address low byte...consist address
+// 19-20 loco1 ,...-address means loco reversed
+// 21-22 loco2  
+// 23-24 loco3
+// 25-26 loco4
+// 27-28 loco5 
+// 29-30 loco6
+// 31-32 loco7  
+// 33-34 loco8  
+// 35-36 loco9  
+//37-38  loco 10
+//void formConsist(byte numLocos,uint16_t consistAddress, uint16_t LeadLocoAddress,int16_t Loco2Address,int16_t Loco3Address,int16_t Loco4Address,int16_t Loco5Address,int16_t Loco6Address,int16_t Loco7Address,int16_t Loco8Address,int16_t Loco9Address,int16_t Loco10Address);
+
+//#define UNSETCONSIST 17... already defined above
+//#define CONSISTADDRHIGH 17  //address high byte
+//#define CONSISTADDRLOW 18   //address low byte
 
 //RFID data format byte 17 data length, bytes 18-47 carries data
 #define RFIDNUMBYTES 16
@@ -99,6 +124,11 @@
 #define SENADDRLOW 17   //address low byte       //get low byte
 #define SENINST 18      //address instruction...usually 1 or 0
 
+//ANALOGUESENSORUPDATE
+//#define SENADDRHIGH 16  //address high bytee As obove
+//#define SENADDRLOW 17   //address low byte  
+//data from 18 - 21  HIGH to LOW     
+
 //1.4.2
 //WIFICHANNEL
 #define NEWWIFICHANNEL 16
@@ -143,9 +173,13 @@ public:
   void locoReCallDataUpdate(byte theLoco, byte theLocoSpeed);  //0.9 mod function that updates _locoReCallData[32] array
   byte locoReCallGetLocoID(byte ReCallPos);                    //0.9 gets locoID
   byte locoReCallGetLocoSpeed(byte ReCallPos);                 //0.9 gets locoSpeed
-  //nowRail 1.2.0
-  byte locoGetConsistState(byte locoID);                     //results 0...no consist, 1...no consist, 2 consist FWD (normal direction), 3 consist rev direction
-  void locoSetConsistState(byte locoID, byte consistState);  //0...no consist, 1...no consist, 2 consist FWD (normal direction), 3 consist rev direction
+  //nowRail 1.9.2
+  byte locoGetConsistState(byte locoID);                     //L means last loco in consist results 0...F, 1...R, 2 LF, 3 LR, 10 F in consist, 11 R in consist,12 LF in consist,13 LR  in consist
+  void locoSetConsistState(byte locoID, byte consistState);  //L means last loco in consist results 0...F, 1...R, 2 LF, 3 LR, 10 F in consist, 11 R in consist,12 LF in consist,13 LR  in consist
+  //void endConsist(uint16_t consistAddress); //will send command to DCC EX or NCE CAb bus to remove consist
+  void endConsist(byte numLocos,int16_t consistAddress, int16_t LeadLocoAddress,int16_t Loco2Address,int16_t Loco3Address,int16_t Loco4Address,int16_t Loco5Address,int16_t Loco6Address,int16_t Loco7Address,int16_t Loco8Address,int16_t Loco9Address,int16_t Loco10Address);//skip any locos not needed
+  void formConsist(byte numLocos,int16_t consistAddress, int16_t LeadLocoAddress,int16_t Loco2Address,int16_t Loco3Address,int16_t Loco4Address,int16_t Loco5Address,int16_t Loco6Address,int16_t Loco7Address,int16_t Loco8Address,int16_t Loco9Address,int16_t Loco10Address);//skip any locos not needed
+  
   void locoTXLocoData(byte locoID);                          //sends a broadcast of all loco data to be picked up by another controller
   void setLocoRXState(byte state, byte updateLocoID);        //used to set the loco slot for incoming data
   //nowrail 1.3.0
@@ -175,12 +209,16 @@ public:
   void sendAccessoryCommand(int accNum, byte accInst, byte respReq);            //sends an accessory command
   void addStdPinButton(int pin, int accNum, int press1, int press2);            //adds standard pin buttons to system
   void addStdPinAcc(int pin, int accNum, int dir, int pulse, int setpinState);  //Adds std pin accessories to system
-
+  
   void sendSensorUpdate(int senNum, byte senInst);  //Sends a sensor update
   void addStdPinSensor(int pin, int senNum);
   //1.7.0
   void addStdPinTSwitch(int pin, int accNum);
-
+   //1.8.1
+ // void setupDCCEXSensor(uint16_t senNum); //function to set up a new virtual sensor in DCCEX...will send when any sensor set up
+  void sensorCustomValue(uint16_t senNum, int32_t senValue); //Allows user to send custom value to a sensor
+  void sendDCCEXCustomCmd(String cmdString);//will allow up to 30 bytes per command
+  void sensorProcessed(void);//1.8.3
 
 #if defined(NUMCD4021CHIPS)
   void setupCD4021(int latchPin, int clockPin, int dataPin);                       // Sets up the pins
@@ -197,19 +235,24 @@ public:
 #endif
 #if defined(MAXPCA9685SERVOBOARDS)
   void addPCA9685Servo(byte board, byte port, int accNum, int angle0, int angle1, int moveTime);  //time added in 1.0.3
-  //0_9_2 LED mods
-  void addPCA9685Led(byte board, byte port, int accNum, int dirOn, int effect, int maxBright, int effectBright);  //dir)n = 0 or 1 to turn on, effect 0 = on/0ff, 1 = fire flicker, 2 = gas light, 3 = arc welder
+  //1_9_0 LED mods
+  void addPCA9685Led(byte board, byte port, int accNum, int dirOn, int effect, int maxBright, int effectBright);  //dir)n = 0 or 1 to turn on, effect 0 = on/0ff, 1 = fire flicker, 2 = gas light, 3 = arc welder, 4 = flash
   //int _pca9685LEDS[MAXPCA9685SERVOBOARDS][7];//board, port, accNum,dirOn,effect Type, max brightness, effect brightness
   //panel leds
   void addPCA9685PanelLed(byte board, byte port, int accNum, int dirOn, int effect, int maxBright);  //panel led... efect on/off or flashing
+  //1.9.3
+  //void setPCA9685LEDOpenDrain(byte boardAddress);//sets board to open drain for leds
 #endif
 
 #if defined(MP3BUSYPIN)
   //void addMP3PlayTrack(int accNum,int dirOn, int trackMin, int trackMax, int playType, int playInterval);//AccNumber, dir, track min, track max, (single, random, order), time interval bwteen plays, state
   void addMP3PlayTrack(int accNum, int dirOn, int trackNum, int maxTrackNum, int mode);  //mode 0 = play now, 1 = random//state is current play state 1 = play
   void mp3PlayVolume(int vol);                                                           //sets the volume from default
-
-
+#endif
+#if defined(NUMDELAYEDACCS)
+  //uint8_t _DelayAccs[NUMDELAYEDACCS][7];  //TriggerAccNum,TriggerAccDir,DelaAccNum,DelayAccDir,DelayTime,Triggerstate,TriggerMillis
+  //int _DelayAccsCount;  
+  void addDelayedAccTrigger(int triggerAccNum,byte triggerAccDir,int delayedAccNum,byte delayedAccDir,int delayTime);
 #endif
 
 private:
@@ -238,6 +281,7 @@ private:
   byte _stdPinButtonsCount;             //how many buttons have been added to system
 
   //Sensors
+  //byte _senProcessed; 
   unsigned long _sensorDebounceMillis;
   void sensorEvents(void);          //go through sensors
   int _stdPinSensors[50][3];        //pin, senNum, LastState
@@ -292,12 +336,16 @@ private:
 #if defined(MAXPCA9685SERVOBOARDS)
   byte _pca9685Addresses[MAXPCA9685SERVOBOARDS][2];  //0_9_2 mod 0 = address 1 = servo/0 led 1
   byte _pca9685AddressesCount;
-  int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][8];               //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion)
+  //1.9.1 mod
+  int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][9];               //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion),detachState (0 = attached)
+  //int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][8];               //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion)
   unsigned long _pca9685ServosMillis[MAXPCA9685SERVOBOARDS * 16];  //stores last move time in milliseconds 1.0.3
   int _pca9685ServoCount;
   void pca9685ServoControl();                                     //deals with servo movement in main loop
   void setupPCA9685Board(byte boardAddress, byte boardType);      //0_9_2 mods sets up servo boards, type 0 = servo, type 1 = led
   void setPCA695Servo(byte boardAddress, byte port, byte angle);  //move servo to an angle
+  //1.9.1 mod
+  void detachPCA9685Servo(byte boardAddress, byte port);
   //0_9_2 LED mods
   unsigned long _pca9685LEDTimers[MAXPCA9685SERVOBOARDS * 16][2];  //used for led flicker timings 0 = flicker time, 1 = wait interval
   byte _pca9685LEDStates[MAXPCA9685SERVOBOARDS * 16][3];           //current state, requested state values are 0 = OFF, 1 full brightness or  effect brightness, 2 effects state
@@ -310,6 +358,7 @@ private:
   int _pca9685PanelLEDCount;
   byte _pca9685PanelLEDStates[MAXPCA9685SERVOBOARDS * 16][3];
   unsigned long _pca9685PanelLEDTimers[MAXPCA9685SERVOBOARDS * 16];
+  
 #endif
 #if defined(NOWDisc)
   //EEPROM
@@ -339,7 +388,7 @@ private:
   byte recReadFifoCounter;
   // //Holds command to be sent out
   void checkSendFifo(void);
-
+  void sendMessResp(void);
   void incsendWriteFifoCounter(void);
   byte sendFifoBuffer[256][PACKETLENGTH];  //Way more than needed but better safe than sorry
   byte sendWriteFifoCounter;               //keeps track of current write position
@@ -435,6 +484,8 @@ private:
   byte _nceclockData[8];
   byte _nceclockCount;
   byte _nceclockMode;
+  unsigned long _messageDelayMillis;
+  unsigned long _messageDelayTimer = 0;
 #endif
 
 #if defined(MP3BUSYPIN)
@@ -483,6 +534,11 @@ private:
   uint8_t readGT911TouchAddr(uint16_t regAddr, uint8_t *pBuf, uint8_t len);
   uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num);
 #endif
+#if defined(NUMDELAYEDACCS)
+  uint32_t _DelayAccs[NUMDELAYEDACCS][7];  //TriggerAccNum,TriggerAccDir,DelaAccNum,DelayAccDir,DelayTime,Triggerstate,TriggerMillis
+  int _DelayAccsCount;  
+
+#endif
 };
 
 
@@ -513,7 +569,7 @@ extern "C" {
   extern void nowMomentButton(void) __attribute__((weak));                                                 //Function for reading momentary button presses
   extern void nowPowerCommand(byte Command) __attribute__((weak));                                         //Function controlling base station power
   extern void nowGT911Touch(int xPos, int yPos) __attribute__((weak));                                     //reports GT911 touches
-  extern void nowSensorUpdate(int senNum, byte senInst) __attribute__((weak));                             //sensor updates
+  extern void nowSensorUpdate(int senNum, int32_t senInst) __attribute__((weak));                             //sensor updates
   extern void nowClockSpeedUpdate(void) __attribute__((weak));                                             //clock speed updates
   extern void nowLocoFuncUpdate(int nowLocoID, byte nowFuncNum, byte nowFuncState) __attribute__((weak));  //receives loco function updates..for updating controllers
   extern void nowLocoSpeedUpdate(int locoAddr, byte locoSpeed, byte locoDir) __attribute__((weak));        //receives loco function updates..for updating controllers

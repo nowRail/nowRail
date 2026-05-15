@@ -1,6 +1,7 @@
-/*nowRailV1_7_1
-06/01/2026
+/*nowRailV1_9_3HandControllerV5_7
+30/04/26
 */
+
 #pragma once
 
 //WIFI added in Version 1.4.4
@@ -31,6 +32,9 @@
 //Only one board should be MASTERCLOCK_ON... This really needs to be a board that is ALWAYS turned on.
 //A MASTERCLOCK board is required for if WIFIMASTERCLOCKCHANGE is being used
 //#define MASTERCLOCK_ON    //this board is the master clock and will send out a broadcast to sync all other boards
+//1.8.3 https://www.digitaltown.co.uk/nowRail.php#MASTERCLOCK covered in video https://www.youtube.com/watch?v=Eih6xguq3gM at time point 20:20
+#define REDUCEMASTERCLOCKDIAG //This reduces Masterclock messages to once per minute... reduced clutter when doing diagnostics
+
 
 //SERIAL Devices.........................................
 //nowRail use Serial2.... WARNING  some boards DO NOT have Serial 2
@@ -55,7 +59,7 @@
 //NCE Cab bus..........................................................
 //See https://www.digitaltown.co.uk/nowRail.php#NCE
 //Accessory command range 1-2000
-//#define CAB_BUS_ADDRESS 4 // This is the address on CAB BUS for the unit There are a limited number of addresses with the PowerCab
+//#define  4 // This is the address on CAB BUS for the unit There are a limited number of addresses with the PowerCab
 //#define CAB_BUS_SHORTADDRON 0 //Loco Addresses 1-128 will be treated as Short Addresses, set to 0 for all LONG addresses
 //#define RS485ENABLLEPIN 4 //RS485 modules requires RX/TX at 9600 Baud and a transmit pin defined in this line 
 
@@ -89,10 +93,15 @@
 //For servos see https://youtu.be/khPnUbnIN88
 //For LEDs see https://youtu.be/xKgqPWWVrK8
 //used for Servos and LED's NOTE: LED's and servos CANNOT be on the same board address
-//#define MAXPCA9685SERVOBOARDS 5 //default is 5, increase if required
+//#define MAXPCA9685SERVOBOARDS 5 //default is 1, increase if required
 //#define SERVOMIN 450    //servo min value
 //#define SERVOMAX 2000   //servo max value
-
+//Added in version 1.9.0 
+//#define PCA9685FLASHTIMER 1000 //any flashing PCS 9685 panel LED or accessory Leds flash timing in milliseconds
+//1.9.1
+//#define PCA9685SERVODETACH 600 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
+//1.9.3
+//#define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode and invert signal to retain effects
 
 //GT911 Touch Screen.....................................................
 //See https://www.youtube.com/watch?v=0s4-Wp4rPuw
@@ -100,23 +109,18 @@
 // #define GT911TOUCHBUTTONS 30  //sets the touch point buttons, increase for more buttons.
 // #define GT911TOUCHRADIUS 35   //35 is approx 5mm either side of the centre touch point
 
-
 //Other components........................................................
-
-
-
 
 //CD4021 Shift registers.... to allow extra inputs, could be for control panel or sensors.
 //See https://www.digitaltown.co.uk/nowRail.php#CD4021
 #define NUMCD4021CHIPS 1 //Number of chips daisy chained...system will auto build the array
-#define NUMCD4021CHIPSNUMBUTTONS 2 //Although only 8 pins per chip allow some space in case you want a pin to call multiple accs
+#define NUMCD4021CHIPSNUMBUTTONS 8 //Although only 8 pins per chip allow some space in case you want a pin to call multiple accs
 //1.7.0 ToggleSwitches
-#define NUMCD4021CHIPSNUMTSWITCH 2 // Toggle switches Although only 8 pins per chip allow some space in case you want a pin to call multiple accs
+#define NUMCD4021CHIPSNUMTSWITCH 8 // Toggle switches Although only 8 pins per chip allow some space in case you want a pin to call multiple accs
 
 //74HC595N SHIFT REGISTERS....to allow more outputs
 //See https://www.digitaltown.co.uk/nowRail.php#74HC595N
 #define NUM74HC595NCHIPS 1
-
 
 //Configuration settings
 //See https://www.digitaltown.co.uk/nowRail.php#Debounce

@@ -1,3 +1,8 @@
+/*nowRailV1_9_3HandControllerV5_7
+30/04/26
+*/
+
+
 
 
 int locoSelectSelectedLoco;  //gets the selected loco in loco select screen
@@ -5,7 +10,7 @@ int locoSelectScrollOffset;
 int locoConsistScrollOffset;
 int editLocoNum;
 String editLocoName;
-byte screenMode;  //Keeps track of screen mode
+
 byte editCapitals;
 byte isConsist;
 byte txAllState;
@@ -45,11 +50,8 @@ int screenBoxes[][6] = {        //x,y,w,h,screen mode,state 0 = off 1 = selected
   { 0, 208, 159, 64, 1, 0 },    //Functions <<        15
   { 160, 208, 160, 64, 1, 0 },  //Functions >>        16
   { 160, 272, 160, 64, 1, 0 },  //Change Loco        17
-  //{ 0, 336, 159, 64, 1, 0 },    //Clock <<        18
-  //{ 160, 336, 160, 64, 1, 0 },  //Clock >>        19
-  { 0, 336, 159, 64, 1, 0 },    //Recall<        18
+  { 0, 336, 159, 64, 1, 0 },    //Recall       18
   { 160, 336, 160, 64, 1, 0 },  //Consist        19
-  //{ 0, 400, 159, 64, 1, 0 },    //Recall       20
   { 0, 400, 159, 64, 1, 0 },    //Settings       20
   { 160, 400, 160, 64, 1, 0 },  //STOP        21
   // all screens
@@ -140,11 +142,12 @@ int screenBoxes[][6] = {        //x,y,w,h,screen mode,state 0 = off 1 = selected
   { 170, 368, 90, 47, 5, 0 },  // Del 98
   { 260, 368, 60, 47, 5, 0 },  // Case 99
   //screen 3 mods for consist
-  { 0, 272, 320, 64, 3, 0 },  //Set Consist      100........no longer in use
+
 
   //screen 6 consist selection
-  { 0, 415, 159, 64, 6, 0 },    //Exit      101
-  { 160, 415, 160, 64, 6, 0 },  //Clr Consist        102
+  { 107, 415, 106, 64, 6, 0 },  //Set Consist      100........no longer in use
+  { 0, 415, 105, 64, 6, 0 },    //Exit      101
+  { 215, 415, 104, 64, 6, 0 },  //Clr Consist        102
 
   { 0, 82, 50, 41, 6, 0 },  //103 locos to select Direction...small button on left
   { 0, 123, 50, 41, 6, 0 },
@@ -351,23 +354,39 @@ void screen9OnOff() {
   String myString;
   //onOffState[1]
   box = 143;
-  myString = "ON";
+  myString = ACCON;
+  if (myString.length() < 6) {
 
-
-  if (onOffState[0] < 1) {
-    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+    if (onOffState[1] < 1) {
+      drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+    } else {
+      //drawScreenBox30fnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
+      drawScreenBox30fnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
+    }
   } else {
-    drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 0, CC_DATUM);
+    if (onOffState[0] < 1) {
+      drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+    } else {
+      drawScreenBoxSmallfnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
+    }
   }
 
 
   box = 144;
-  myString = "OFF";
+  myString = ACCOFF;
+  if (myString.length() < 6) {
 
-  if (onOffState[1] < 1) {
-    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+    if (onOffState[0] < 1) {
+      drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+    } else {
+      drawScreenBox30fnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
+    }
   } else {
-    drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 0, CC_DATUM);
+    if (onOffState[1] < 1) {
+      drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+    } else {
+      drawScreenBoxSmallfnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
+    }
   }
 }
 
@@ -463,7 +482,7 @@ void buildscreen7() {
   if (txAllState < 1) {
     drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
   } else {
-    drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 0, CC_DATUM);
+    drawScreenBox30fnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
   }
 
   box = 129;
@@ -471,7 +490,7 @@ void buildscreen7() {
   if (rxAllState < 1) {
     drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
   } else {
-    drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 0, CC_DATUM);
+    drawScreenBox30fnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
   }
 
   box = 157;
@@ -495,24 +514,15 @@ void setNewCurrentLoco() {
   myLayout.locoReCallDataUpdate(locoID, locoSpeed);  //Update the recall system...new loco
   screenLocoNameNum();
   screenLocoSpeed();
-  //controller v4.0 mods
-  //clear consists if exists
-  for (q = 0; q < 200; q++) {  //work through the whole loco array
-    if (myLayout.locoGetConsistState(q) == 2) {
-      myLayout.locoSetConsistState(q, 0);  //reset all the consist bytes
-    } else {
-      if (myLayout.locoGetConsistState(q) == 3) {
-        myLayout.locoSetConsistState(q, 1);  //reset all the consist bytes
-      }
-    }
-  }
+  //1_9_2 mods
+  isConsist = 0;
   buildscreen1();
 }
 
 
 //deals with loco recall button press
 void locoRecallPressed() {
-  
+
   //update the current locos speeds
   myLayout.locoReCallDataUpdate(locoID, locoSpeed);  //Update the recall system...current loco
   //now set for new loco
@@ -527,17 +537,8 @@ void locoRecallPressed() {
   myLayout.locoReCallDataUpdate(locoID, locoSpeed);  //Update the recall system...current loco
   screenLocoNameNum();
   screenLocoSpeed();
-  //controller v4.0 mods
-  //remove consists
-  for (int q = 0; q < 200; q++) {  //work through the whole loco array
-      if (myLayout.locoGetConsistState(q) == 2) {
-        myLayout.locoSetConsistState(q, 0);  //reset all the consist bytes
-      } else {
-        if (myLayout.locoGetConsistState(q) == 3) {
-          myLayout.locoSetConsistState(q, 1);  //reset all the consist bytes
-        }
-      }
-    }
+  //1_9_2 mods
+  isConsist = 0;
   buildscreen1();
 }
 
@@ -551,22 +552,55 @@ void locoConsistBoxes() {
     box = q + 103;                                                             //direction box
     myConstState = myLayout.locoGetConsistState(q + locoConsistScrollOffset);  //get the loco consist state
     //myString = String(myConstState);
-    if (myConstState == 0 || myConstState == 2) {
-      myString = 'F';
-      drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
-    } else {
-      myString = 'R';
-      drawScreenBoxSmallfnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 0, CC_DATUM);
+    switch (myConstState) {
+      case 1:  //REV not in consists
+        //myString = 'R';
+        myString = LocoREV;
+        drawScreenBoxSmallfnt(box, SPEEDREVBGCOLOR, SPEEDREVBGCOLOR, myString, SPEEDREVTXTCOLOR, SPEEDREVBGCOLOR, 0, CC_DATUM);
+        break;
+      case 2:  //Last loco FWD in consists
+        //myString = "LF";
+        myString = LastLocoFWD;
+        drawScreenBoxSmallfnt(box, SPEEDFWDBGCOLOR, SPEEDFWDBGCOLOR, myString, SPEEDFWDTXTCOLOR, SPEEDFWDBGCOLOR, 0, CC_DATUM);
+        break;
+      case 3:  //Last loco REV in consists
+        //myString = "LR";
+        myString = LastLocoREV;
+        drawScreenBoxSmallfnt(box, SPEEDREVBGCOLOR, SPEEDREVBGCOLOR, myString, SPEEDREVTXTCOLOR, SPEEDREVBGCOLOR, 0, CC_DATUM);
+        break;
+      case 10:  //FWD
+        //myString = 'F';
+        myString = LocoFWD;
+
+        drawScreenBoxSmallfnt(box, SPEEDFWDBGCOLOR, SPEEDFWDBGCOLOR, myString, SPEEDFWDTXTCOLOR, SPEEDFWDBGCOLOR, 0, CC_DATUM);
+        break;
+      case 11:  //REV not in consists
+        myString = 'R';
+        drawScreenBoxSmallfnt(box, SPEEDREVBGCOLOR, SPEEDREVBGCOLOR, myString, SPEEDREVTXTCOLOR, SPEEDREVBGCOLOR, 0, CC_DATUM);
+        break;
+      case 12:  //Last loco FWD in consists
+        myString = "LF";
+        drawScreenBoxSmallfnt(box, SPEEDFWDBGCOLOR, SPEEDFWDBGCOLOR, myString, SPEEDFWDTXTCOLOR, SPEEDFWDBGCOLOR, 0, CC_DATUM);
+        break;
+      case 13:  //Last loco REV in consists
+        myString = "LR";
+        drawScreenBoxSmallfnt(box, SPEEDREVBGCOLOR, SPEEDREVBGCOLOR, myString, SPEEDREVTXTCOLOR, SPEEDREVBGCOLOR, 0, CC_DATUM);
+        break;
+      default:  //FWD not in consists
+        myString = 'F';
+        drawScreenBoxSmallfnt(box, SPEEDFWDBGCOLOR, SPEEDFWDBGCOLOR, myString, SPEEDFWDTXTCOLOR, SPEEDFWDBGCOLOR, 0, CC_DATUM);
+        break;
     }
+
 
     box = q + 111;  //direction box
     //myString = "1234 ABCDEFGHIJ";///reduced line length
     myString = stringPad('0', 4, String(myLayout.getLocoDCCAddress(q + locoConsistScrollOffset))) + ' ' + myLayout.getLocoName(q + locoConsistScrollOffset);
     myString = myString.substring(0, 15);
-    if (myConstState < 2) {  //not in consist
+    if (myConstState < 10) {  //not in consist
       drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 2, CL_DATUM);
     } else {
-      drawScreenBoxSmallfnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 2, CL_DATUM);
+      drawScreenBoxSmallfnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 2, CL_DATUM);
     }
   }
 
@@ -580,6 +614,142 @@ void locoConsistBoxes() {
   tft.fillTriangle(screenBoxes[box][0] + (screenBoxes[box][2] / 2), screenBoxes[box][1] + screenBoxes[box][3], screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][0] + screenBoxes[box][2], screenBoxes[box][1], TFT_WHITE);
 }
 
+//controller 5.1 nowRail with nowRail 1_9_2 functions
+void endConsist() {
+  byte numCLocos;
+  int16_t consistAddress;
+  int q;
+  int16_t consArray[10];  //stores loco ID's of consist
+  for (q = 0; q < 10; q++) {
+    consArray[q] = 0;
+  }
+  if (CONSISTTYPE > 0) {  //this function is only used for CONSISTTYPE > 0 (NCE DCCEX)
+    switch (CONSISTTYPE) {
+      case 1:  //EX RAIL consist... requires current loco DCC address
+        consistAddress = myLayout.getLocoDCCAddress(locoID);
+        consArray[numCLocos] = consistAddress;
+        numCLocos++;
+        break;
+      // case 2:  //NCE Consist
+      //   consistAddress = NCECONSISTADDRESS;
+      //   consArray[numCLocos] = myLayout.getLocoDCCAddress(locoID);
+      //   numCLocos++;
+      //   break;
+      default:  //0 consist means individual commands  sent
+        break;
+    }
+    //the goal now is to get the locos in the correct order
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre forward locos
+      if (myLayout.locoGetConsistState(q) == 10) {             //forwards
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address
+        numCLocos++;
+        if (numCLocos > 9) {  //prevents array overrun
+          q = 200;            //exit for loop
+        }
+      }
+    }
+    //the goal now is to get the locos in the correct order
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre reverse locos
+      if (myLayout.locoGetConsistState(q) == 11) {             //forwards
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address and make negative
+        consArray[numCLocos] = consArray[numCLocos] * -1;
+        numCLocos++;
+        if (numCLocos > 9) {
+          q = 200;  //exit for loop
+        }
+      }
+    }
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre forward locos
+      if (myLayout.locoGetConsistState(q) == 12) {             //last loco forwards
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address
+        numCLocos++;
+        if (numCLocos > 9) {
+          q = 200;  //exit for loop
+        }
+      }
+    }
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre reverse locos
+      if (myLayout.locoGetConsistState(q) == 13) {             //last loco reverse
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address and make negative
+        consArray[numCLocos] = consArray[numCLocos] * -1;
+        numCLocos++;
+        if (numCLocos > 9) {
+          q = 200;  //exit for loop
+        }
+      }
+    }
+    //myLayout.endConsist(uint16_t consistAddress)
+    myLayout.endConsist(numCLocos, consistAddress, consArray[0], consArray[1], consArray[2], consArray[3], consArray[4], consArray[5], consArray[6], consArray[7], consArray[8], consArray[9]);
+  }
+}
+
+void sendConsist() {
+  byte numCLocos;
+  int16_t consistAddress;
+  int q;
+  int16_t consArray[10];  //stores loco ID's of consist
+  for (q = 0; q < 10; q++) {
+    consArray[q] = 0;
+  }
+  if (CONSISTTYPE > 0) {  //this function is only used for CONSISTTYPE > 0 (NCE DCCEX)
+    switch (CONSISTTYPE) {
+      case 1:  //EX RAIL consist... requires current loco DCC address
+        consistAddress = myLayout.getLocoDCCAddress(locoID);
+        consArray[numCLocos] = consistAddress;
+        numCLocos++;
+        break;
+      // case 2:  //NCE Consist
+      //   consistAddress = NCECONSISTADDRESS;
+      //   consArray[numCLocos] = myLayout.getLocoDCCAddress(locoID);
+      //   numCLocos++;
+      //   break;
+      default:  //0 consist means individual commands  sent
+        break;
+    }
+    //the goal now is to get the locos in the correct order
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre forward locos
+      if (myLayout.locoGetConsistState(q) == 10) {             //forwards
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address
+        numCLocos++;
+        if (numCLocos > 9) {  //prevents array overrun
+          q = 200;            //exit for loop
+        }
+      }
+    }
+    //the goal now is to get the locos in the correct order
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre reverse locos
+      if (myLayout.locoGetConsistState(q) == 11) {             //forwards
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address and make negative
+        consArray[numCLocos] = consArray[numCLocos] * -1;
+        numCLocos++;
+        if (numCLocos > 9) {
+          q = 200;  //exit for loop
+        }
+      }
+    }
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre forward locos
+      if (myLayout.locoGetConsistState(q) == 12) {             //last loco forwards
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address
+        numCLocos++;
+        if (numCLocos > 9) {
+          q = 200;  //exit for loop
+        }
+      }
+    }
+    for (int q = 0; q < 200; q++) {                            //work through the whole loco array getting centre reverse locos
+      if (myLayout.locoGetConsistState(q) == 13) {             //last loco reverse
+        consArray[numCLocos] = myLayout.getLocoDCCAddress(q);  //get the loco address and make negative
+        consArray[numCLocos] = consArray[numCLocos] * -1;
+        numCLocos++;
+        if (numCLocos > 9) {
+          q = 200;  //exit for loop
+        }
+      }
+    }
+    myLayout.formConsist(numCLocos, consistAddress, consArray[0], consArray[1], consArray[2], consArray[3], consArray[4], consArray[5], consArray[6], consArray[7], consArray[8], consArray[9]);
+  }
+}
+
 //consist screen
 void buildscreen6() {
   int box;
@@ -588,12 +758,19 @@ void buildscreen6() {
   tft.setFreeFont(FSS12);
   screenBlackBack();
 
+  box = 100;  //SET consists
+  if (isConsist > 0) {
+    myString = "Un Set";
+    drawScreenBoxSmallfnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 0, CC_DATUM);
+  } else {
+    myString = "Set";
+    drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+  }
   box = 101;  //exit
   myString = "<< Exit";
-  drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
-
+  drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
   box = 102;  //select
-  myString = "Clr Consist";
+  myString = "Clear";
   drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
 
   locoConsistBoxes();
@@ -790,8 +967,8 @@ void locoSelectBoxes() {
       // drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 1, 9);
       drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 2, CL_DATUM);
     } else {
-      // drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 1, 9);
-      drawScreenBoxSmallfnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 2, CL_DATUM);
+      // drawScreenBox30fnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 1, 9);
+      drawScreenBoxSmallfnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 2, CL_DATUM);
     }
   }
   //Loco scroll buttons
@@ -839,54 +1016,100 @@ void screen1OtherButtons() {
 
   box = 17;
   myString = "Change Loco";
-  //drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 63, 20);
-  drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+  if (accidentalTouchBox != 17) {  //5.6 mods
+    drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+  } else {
+    drawScreenBoxSmallfnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 0, CC_DATUM);
+  }
 
 
   box = 18;
   myString = "Recall";
   if (recallPos < 2) {
-    
-    
-    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 35, 20);
+
+    if (accidentalTouchBox != 18) {  //5.6 mods
+      drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 35, 20);
+    } else {
+      drawScreenBox30fnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 35, 20);
+    }
   } else {
-    drawScreenBox30fnt(box, TFT_YELLOW, TFT_BLACK, myString, TFT_BLACK, TFT_YELLOW, 35, 20);
+    drawScreenBox30fnt(box, BUTTONCOLOR, TFT_BLACK, myString, TFT_BLACK, BUTTONCOLOR, 35, 20);
   }
 
   box = 19;
-  isConsist = 0;
-  for (q = 0; q < 200; q++) {                   //work through the whole loco array
-    if (myLayout.locoGetConsistState(q) > 1) {  //see if any locos in consist mode
-      isConsist = 1;
-      q = 200;
-    }
-  }
+
   myString = "Consist";
   if (isConsist < 1) {
-    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 65, 20);
+    if (accidentalTouchBox != 19) {  //5.6 mods
+      drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 65, 20);
+    } else {
+      drawScreenBox30fnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 65, 20);
+    }
   } else {
-    drawScreenBox30fnt(box, TFT_YELLOW, TFT_YELLOW, myString, TFT_BLACK, TFT_YELLOW, 65, 20);
+    drawScreenBox30fnt(box, BUTTONCOLOR, BUTTONCOLOR, myString, TFT_BLACK, BUTTONCOLOR, 65, 20);
   }
 
   box = 20;  //recall buttons
   myString = "Settings";
-  drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 14, 20);
+  if (accidentalTouchBox != 20) {  //5.6 mods
+    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 14, 20);
+  } else {
+    drawScreenBox30fnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 14, 20);
+  }
+
 
   box = 21;
-  Serial.print("PWRSTATE: ");
-  Serial.println(powerState);
-  if (powerState < 1) {
-    myString = "Start";
-    drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 40, 20);
-  } else {
-    myString = "STOP";
-    drawScreenBox30fnt(box, TFT_RED, TFT_WHITE, myString, TFT_WHITE, TFT_RED, 43, 20);
+  if (DIRECTIONORPOWER < 1) {  //5.6 mod to allow button to be used for direction
+                               //original power mode
+    // Serial.print("PWRSTATE: ");
+    // Serial.println(powerState);
+    if (powerState < 1) {
+      myString = "Start";
+      if (accidentalTouchBox != 21) {  //5.6 mods
+        drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 40, 20);
+      } else {
+        drawScreenBox30fnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 40, 20);
+      }
+      //drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 40, 20);
+    } else {
+      myString = "STOP";
+      if (accidentalTouchBox != 21) {  //5.6 mods
+        drawScreenBox30fnt(box, PWRCOLOR, TFT_WHITE, myString, TFT_WHITE, PWRCOLOR, 40, 20);
+      } else {
+        drawScreenBox30fnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 40, 20);
+      }
+      //drawScreenBox30fnt(box, PWRCOLOR, TFT_WHITE, myString, TFT_WHITE, PWRCOLOR, 43, 20);
+    }
+  } else {                  //direction mode
+    if (locoSpeed < 128) {  //Reverse
+      myString = "FORWARD";
+      if (accidentalTouchBox != 21) {  //5.6 mods
+        drawScreenBoxSmallfnt(box, SPEEDFWDBGCOLOR, TFT_WHITE, myString, SPEEDFWDTXTCOLOR, SPEEDFWDBGCOLOR, 0, CC_DATUM);
+      } else {
+        drawScreenBoxSmallfnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 0, CC_DATUM);
+        //drawScreenBox30fnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 40, 20);
+      }
+      //drawScreenBoxSmallfnt(box, SPEEDFWDBGCOLOR, TFT_WHITE, myString, SPEEDFWDTXTCOLOR, SPEEDFWDBGCOLOR, 0, CC_DATUM);
+    } else {
+      myString = "REVERSE";
+      if (accidentalTouchBox != 21) {  //5.6 mods
+        drawScreenBoxSmallfnt(box, SPEEDREVBGCOLOR, TFT_WHITE, myString, SPEEDREVTXTCOLOR, SPEEDREVBGCOLOR, 0, CC_DATUM);
+      } else {
+        drawScreenBoxSmallfnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 0, CC_DATUM);
+        //drawScreenBox30fnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 40, 20);
+      }
+      //drawScreenBoxSmallfnt(box, SPEEDREVBGCOLOR, TFT_WHITE, myString, SPEEDREVTXTCOLOR, SPEEDREVBGCOLOR, 0, CC_DATUM);
+    }
   }
 
   box = 141;
   myString = "Acc Command";
-  //drawScreenBox30fnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 63, 20);
-  drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+
+  if (accidentalTouchBox != 141) {  //5.6 mods
+    drawScreenBoxSmallfnt(box, TFT_BLACK, TFT_WHITE, myString, TFT_WHITE, TFT_BLACK, 0, CC_DATUM);
+  } else {
+    drawScreenBoxSmallfnt(box, ACCIDENTPUSHCOLOR, ACCIDENTPUSHTEXTCOLOR, myString, ACCIDENTPUSHTEXTCOLOR, ACCIDENTPUSHCOLOR, 0, CC_DATUM);
+  }
 }
 
 //Draws an individual function box
@@ -900,38 +1123,37 @@ void drawFunctionBox(int func) {
 
   switch (func) {
     case 0:
-      myString = 'L';
+      myString = Func0;
       break;
     case 1:
       //myString = "WH"
-      myString = '1';
-      ;
+      myString = Func1;
       break;
     case 2:
       //myString = "SQ";
-      myString = '2';
+      myString = Func2;
       break;
     case 3:
       // myString = "CO";
-      myString = '3';
+      myString = Func3;
       break;
     case 4:
-      myString = '4';
+      myString = Func4;
       break;
     case 5:
-      myString = '5';
+      myString = Func5;
       break;
     case 6:
-      myString = '6';
+      myString = Func6;
       break;
     case 7:
-      myString = '7';
+      myString = Func7;
       break;
     case 8:
-      myString = '8';
+      myString = Func8;
       break;
     case 9:
-      myString = '9';
+      myString = Func9;
       break;
     default:
       myString = String(func);
@@ -945,18 +1167,10 @@ void drawFunctionBox(int func) {
     tft.drawRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], TFT_WHITE);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
   } else {  //selected
-    tft.fillRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], TFT_YELLOW);
-    tft.setTextColor(TFT_BLACK, TFT_YELLOW);
+    tft.fillRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], BUTTONCOLOR);
+    tft.setTextColor(TFT_BLACK, BUTTONCOLOR);
   }
 
-  //sets the cursor position, needs to change for numbers greater than 1 char in length
-  // if (funcSet > 0) {
-  //   //tft.setCursor(screenBoxes[box][0] + 12, screenBoxes[box][1] + 20);
-  //   tft.setCursor(screenBoxes[box][0] + 12, screenBoxes[box][1] + 42);
-  // } else {
-  //   //tft.setCursor(screenBoxes[box][0] + 22, screenBoxes[box][1] + 20);
-  //   tft.setCursor(screenBoxes[box][0] + 22, screenBoxes[box][1] + 42);
-  // }
   tft.setFreeFont(FSS18);
   tft.setTextDatum(CC_DATUM);  //centre text
   //tft.println(myString);
@@ -968,8 +1182,10 @@ void drawFunctionBox(int func) {
 //Draws all the function boxes
 void screen1LocoFunctions() {
   int q;
-  for (q = 0; q < 10; q++) {
-    drawFunctionBox(q + funcSet);  //draw all the function boxes
+  if(screenMode == 1){//addded for non latching in case screen had moved on
+    for (q = 0; q < 10; q++) {
+      drawFunctionBox(q + funcSet);  //draw all the function boxes
+    }
   }
 }
 //sets black background
@@ -1057,56 +1273,60 @@ void screenLocoSpeed() {
     sendDir = 0;
     sendSpeed = map(locoSpeed, 0, 127, 127, 0);
     myString = myString + stringPad('0', 3, String(sendSpeed));
-    // drawScreenBox30fnt(box, TFT_RED, TFT_RED, myString, TFT_WHITE, TFT_RED, 1, 2);
-    //void drawScreenBox30fnt(int box, int boxColour, int boxBorder, String myString, int textColour, int textBackgrnd, int textXOffset, int textYOffset) {
-
-    tft.fillRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], TFT_RED);
-    tft.drawRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], TFT_RED);
+    tft.fillRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], SPEEDREVBGCOLOR);
+    tft.drawRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], SPEEDREVBGCOLOR);
     tft.setCursor(screenBoxes[box][0] + 1, screenBoxes[box][1] + 22);
-    tft.setTextColor(TFT_WHITE, TFT_RED);
+    tft.setTextColor(SPEEDREVTXTCOLOR, SPEEDREVBGCOLOR);
     tft.setFreeFont(FSS12);
     tft.println(myString);
-
-
-
-    //
-
-
   } else {  //forward
     myString = "  FWD ";
     sendDir = 1;
     sendSpeed = map(locoSpeed, 128, 255, 0, 127);
     myString = myString + stringPad('0', 3, String(sendSpeed));
-    // drawScreenBox30fnt(box, TFT_BLACK, TFT_BLACK, myString, TFT_WHITE, TFT_BLACK, 1, 2);
-
-    tft.fillRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], TFT_BLACK);
-    tft.drawRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], TFT_BLACK);
+    tft.fillRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], SPEEDFWDBGCOLOR);
+    tft.drawRect(screenBoxes[box][0], screenBoxes[box][1], screenBoxes[box][2], screenBoxes[box][3], SPEEDFWDBGCOLOR);
     tft.setCursor(screenBoxes[box][0] + 1, screenBoxes[box][1] + 22);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setTextColor(SPEEDFWDTXTCOLOR, SPEEDFWDBGCOLOR);
     tft.setFreeFont(FSS12);
     tft.println(myString);
   }
-  myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(locoID), sendSpeed, sendDir);  //send loco speed command out over nowRail
-  //now add in the consist locos
-  if (sendDir > 0) {
-    sendConsistRevDirection = 0;
+  if (isConsist > 0 && CONSISTTYPE == 2) {  //NCE CAB BUS consist send cab consist address
+    //myLayout.sendDCCLocoSpeed(NCECONSISTADDRESS + 0x2780, sendSpeed, sendDir);
+    //myLayout.sendDCCLocoSpeed(NCECONSISTADDRESS, sendSpeed, sendDir);
+    myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(locoID), sendSpeed, sendDir);  //cab bus sends to lead loco address
   } else {
-    sendConsistRevDirection = 1;
+    myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(locoID), sendSpeed, sendDir);  //send loco speed command out over nowRail
   }
-  for (q = 0; q < 200; q++) {  //work through the whole lcoo array
-    myConstState = myLayout.locoGetConsistState(q);
-    switch (myConstState) {
-      case 2:                                                                          //consist fwd..same direction as main loco
-        myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(q), sendSpeed, sendDir);  //send loco speed command out over nowRail
-        break;
-      case 3:                                                                                          //consist rev...opposite to main loco
-        myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(q), sendSpeed, sendConsistRevDirection);  //send loco speed command out over nowRail
-        break;
-      default:  //if not in consist do nothing
-        break;
+  //now add in the consist locos if using original consist system
+  if (isConsist > 0 && CONSISTTYPE < 1) {  //is it the correct consist type
+    if (sendDir > 0) {
+      sendConsistRevDirection = 0;
+    } else {
+      sendConsistRevDirection = 1;
+    }
+    //for original type consists
+    for (q = 0; q < 200; q++) {  //work through the whole loco array
+      myConstState = myLayout.locoGetConsistState(q);
+      switch (myConstState) {
+        case 10:                                                                         //consist fwd..same direction as main loco
+          myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(q), sendSpeed, sendDir);  //send loco speed command out over nowRail
+          break;
+        case 11:                                                                                         //consist rev...opposite to main loco
+          myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(q), sendSpeed, sendConsistRevDirection);  //send loco speed command out over nowRail
+          break;
+        case 12:                                                                         //consist fwd..same direction as main loco
+          myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(q), sendSpeed, sendDir);  //send loco speed command out over nowRail
+          break;
+        case 13:                                                                                         //consist rev...opposite to main loco
+          myLayout.sendDCCLocoSpeed(myLayout.getLocoDCCAddress(q), sendSpeed, sendConsistRevDirection);  //send loco speed command out over nowRail
+          break;
+        default:  //if not in consist do nothing
+          break;
+      }
     }
   }
-  //
+  //end of original type consists
 }
 
 //display loco name
@@ -1145,14 +1365,148 @@ void buildscreen0() {
   screenTimeAcc();
 }
 
+//sets up non latching function button array
+void nonLatchFuncSetUp(){
+//byte nonLatchingFunctions[30];
+//byte numNonLatching;
+#if defined(FUNC0NONLATCH)
+nonLatchingFunctions[numNonLatching] = 0;
+numNonLatching++;
+#endif
+#if defined(FUNC1NONLATCH)
+nonLatchingFunctions[numNonLatching] = 1;
+numNonLatching++;
+#endif
+#if defined(FUNC2NONLATCH)
+nonLatchingFunctions[numNonLatching] = 2;
+numNonLatching++;
+#endif
+#if defined(FUNC3NONLATCH)
+nonLatchingFunctions[numNonLatching] = 3;
+numNonLatching++;
+#endif
+#if defined(FUNC4NONLATCH)
+nonLatchingFunctions[numNonLatching] = 4;
+numNonLatching++;
+#endif
+#if defined(FUNC5NONLATCH)
+nonLatchingFunctions[numNonLatching] = 5;
+numNonLatching++;
+#endif
+#if defined(FUNC6NONLATCH)
+nonLatchingFunctions[numNonLatching] = 6;
+numNonLatching++;
+#endif
+#if defined(FUNC7NONLATCH)
+nonLatchingFunctions[numNonLatching] = 7;
+numNonLatching++;
+#endif
+#if defined(FUNC8NONLATCH)
+nonLatchingFunctions[numNonLatching] = 8;
+numNonLatching++;
+#endif
+#if defined(FUNC9NONLATCH)
+nonLatchingFunctions[numNonLatching] = 9;
+numNonLatching++;
+#endif
+#if defined(FUNC10NONLATCH)
+nonLatchingFunctions[numNonLatching] = 10;
+numNonLatching++;
+#endif
+#if defined(FUNC11NONLATCH)
+nonLatchingFunctions[numNonLatching] = 11;
+numNonLatching++;
+#endif
+#if defined(FUNC12NONLATCH)
+nonLatchingFunctions[numNonLatching] = 12;
+numNonLatching++;
+#endif
+#if defined(FUNC13NONLATCH)
+nonLatchingFunctions[numNonLatching] = 13;
+numNonLatching++;
+#endif
+#if defined(FUNC14NONLATCH)
+nonLatchingFunctions[numNonLatching] = 14;
+numNonLatching++;
+#endif
+#if defined(FUNC15NONLATCH)
+nonLatchingFunctions[numNonLatching] = 15;
+numNonLatching++;
+#endif
+#if defined(FUNC16NONLATCH)
+nonLatchingFunctions[numNonLatching] = 16;
+numNonLatching++;
+#endif
+#if defined(FUNC17NONLATCH)
+nonLatchingFunctions[numNonLatching] = 17;
+numNonLatching++;
+#endif
+#if defined(FUNC18NONLATCH)
+nonLatchingFunctions[numNonLatching] = 18;
+numNonLatching++;
+#endif
+#if defined(FUNC19NONLATCH)
+nonLatchingFunctions[numNonLatching] = 19;
+numNonLatching++;
+#endif
+#if defined(FUNC20NONLATCH)
+nonLatchingFunctions[numNonLatching] = 20;
+numNonLatching++;
+#endif
+#if defined(FUNC21NONLATCH)
+nonLatchingFunctions[numNonLatching] = 21;
+numNonLatching++;
+#endif
+#if defined(FUNC22NONLATCH)
+nonLatchingFunctions[numNonLatching] = 22;
+numNonLatching++;
+#endif
+#if defined(FUNC23NONLATCH)
+nonLatchingFunctions[numNonLatching] = 23;
+numNonLatching++;
+#endif
+#if defined(FUNC24NONLATCH)
+nonLatchingFunctions[numNonLatching] = 24;
+numNonLatching++;
+#endif
+#if defined(FUNC25NONLATCH)
+nonLatchingFunctions[numNonLatching] = 25;
+numNonLatching++;
+#endif
+#if defined(FUNC26NONLATCH)
+nonLatchingFunctions[numNonLatching] = 26;
+numNonLatching++;
+#endif
+#if defined(FUNC27NONLATCH)
+nonLatchingFunctions[numNonLatching] = 27;
+numNonLatching++;
+#endif
+#if defined(FUNC28NONLATCH)
+nonLatchingFunctions[numNonLatching] = 28;
+numNonLatching++;
+#endif
+#if defined(FUNC29NONLATCH)
+nonLatchingFunctions[numNonLatching] = 29;
+numNonLatching++;
+#endif
+// Serial.print("non latch:");
+// Serial.println(numNonLatching);
+// for(int q=0;q<numNonLatching;q++){
+//   Serial.println(nonLatchingFunctions[q]);
+// }
+}
+
 //Initial screen set up
 void screenSetUp() {
   locoID = myLayout.locoReCallGetLocoID(0);
   tft.begin();
   tft.init();
   tft.setRotation(2);
-
   tft.fillScreen(TFT_BLACK);
+#if defined(COLORINVERT)
+    tft.invertDisplay(true);  // Reverses Screen Colors,  Selection is made in "controller_setup.h"
+#endif
+  nonLatchFuncSetUp();
   buildscreen0();
   buildscreen1();
 }

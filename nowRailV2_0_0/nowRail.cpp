@@ -1,5 +1,5 @@
-/*nowRailV1_9_3
-13/02/2026
+/*nowRailV2_0_0
+15/05/2026
 */
 #include "Arduino.h"
 #include "nowRail.h"
@@ -8,6 +8,8 @@ uint8_t broadcastAddress[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };  //broadcas
 
 byte recWriteFifoCounter;
 byte recFifoBuffer[256][PACKETLENGTH];  //Way more than needed but better safe than sorry
+
+
 
 String nowRail::getnowRailAddr() {
   String myString;
@@ -40,6 +42,26 @@ void nowRail::addMP3PlayTrack(int accNum, int dirOn, int trackNum, int maxTrackN
   }
 };
 
+#endif
+
+//delayed accessories
+#if defined(NUMDELAYEDACCS)
+  //uint8_t _DelayAccs[NUMDELAYEDACCS][7];  //TriggerAccNum,TriggerAccDir,DelaAccNum,DelayAccDir,DelayTime,Triggerstate,TriggerMillis
+  //int _DelayAccsCount;  
+  void nowRail::addDelayedAccTrigger(int triggerAccNum,byte triggerAccDir,int delayedAccNum,byte delayedAccDir,int delayTime){
+      
+    if (_DelayAccsCount < NUMDELAYEDACCS) {  //check that full number not used up
+     _DelayAccs[_DelayAccsCount][0] = triggerAccNum;
+     _DelayAccs[_DelayAccsCount][1] = triggerAccDir;
+     _DelayAccs[_DelayAccsCount][2] = delayedAccNum;
+     _DelayAccs[_DelayAccsCount][3] = delayedAccDir;
+     _DelayAccs[_DelayAccsCount][4] = delayTime;
+    
+     _DelayAccsCount++;
+    }else{
+      Serial.println("ERROR:addDelayedAccTrigger Too many delayed accessories added, increase the value of NUMDELAYEDACCS in nowrail_user_setup.h");  
+    }
+  }
 #endif
 
 //1.4.2  only runs if WIFIMASTERCLOCKCHANGE defined
@@ -469,7 +491,9 @@ void nowRail::pca9685LedControl(void) {  //controls all leds effects..turns on o
     }
 
     //now for effects
-    if (_pca9685LEDStates[q][1] > 0) {  //if the LED is ON
+    // if (_pca9685LEDStates[q][1] > 0) {  //if the LED is ON
+    //bug fix version 2_0_0 stops effects activatiing at start up without command
+    if (_pca9685LEDStates[q][1] > 0 && _pca9685LEDStates[q][1] != 255) {  //if the LED is ON and NOT in start up mode (255)
       switch (_pca9685LEDS[q][4]) {
         case 1:  //fire flicker
           if (_currentMillis - _pca9685LEDTimers[q][0] >= _pca9685LEDTimers[q][1]) {
@@ -634,6 +658,9 @@ void nowRail::addPCA9685Led(byte board, byte port, int accNum, int dirOn, int ef
   _pca9685LEDS[_pca9685LEDCount][5] = maxBright;
   _pca9685LEDS[_pca9685LEDCount][6] = effectBright;
 
+  //_pca9685LEDStates[_pca9685LEDCount][0] = 0;
+  //nowRail::setPCA695Led(_pca9685LEDS[q][0], _pca9685LEDS[q][1], 0); 
+
   if (port < 0 || port > 15) {
     Serial.println("ERROR:addPCA9685Led invalid port address");
     validLed = 1;
@@ -672,6 +699,7 @@ void nowRail::addPCA9685Led(byte board, byte port, int accNum, int dirOn, int ef
   if (validLed < 1) {
     _pca9685LEDStates[_pca9685LEDCount][0] = 255;  //set to an unset value so whatevr trigger it responds
     _pca9685LEDStates[_pca9685LEDCount][1] = 255;  //set to an unset value so whatevr trigger it responds
+   // nowRail::setPCA695Led(_pca9685LEDS[_pca9685LEDCount][0], _pca9685LEDS[_pca9685LEDCount][1], 0); 
     _pca9685LEDCount++;
   }
 }
@@ -1618,7 +1646,7 @@ void nowRail::checkRecFifo(void) {
             //DCC COMMANDS MUST HAVE ADDRESS from 1-2000
             //DCC EX Commands...best done on ESP32 Dev Module
             if (accNum < 2001) {
-#if defined(ESP32)
+//#if defined(ESP32)
 #if defined(DCCEXSSERIAL2_ON)
               boardaddress = (accNum + 3) / 4;
               boardindex = (accNum - (boardaddress * 4)) + 3;
@@ -1637,7 +1665,7 @@ void nowRail::checkRecFifo(void) {
 
 
 
-#endif         // end if for #if defined(ESP32)
+//#endif         // end if for #if defined(ESP32)
             }  //end of if acc below 2001
             //             //call the accessory command function
             //
@@ -1747,6 +1775,26 @@ void nowRail::checkRecFifo(void) {
             }
 
 #endif
+//Delayed accessory trigger system
+#if defined(NUMDELAYEDACCS)
+  //uint8_t _DelayAccs[NUMDELAYEDACCS][7];  //TriggerAccNum,TriggerAccDir,DelaAccNum,DelayAccDir,DelayTime,Triggerstate,TriggerMillis
+  //int _DelayAccsCount;  
+  //void addDelayedAccTrigger(int triggerAccNum,byte triggerAccDir,int delayedAccNum,byte delayedAccDir,int delayTime);
+
+  //The first part is to see if an accessory command coming through should trigger some timed events
+  //Work thorugh the array, check for matching triggerAccNum and TriggerAccDir
+  //This then sets their start time for triggering later
+  for(q=0;q<_DelayAccsCount;q++){
+    //work through all the triggers
+    //Serial.println(q);
+    
+    if(_DelayAccs[q][0] == accNum && _DelayAccs[q][1] == accInst){
+      _accMoved = 1;//if it is found set the acc response
+      _DelayAccs[q][5] = 1;   //Set TriggerState 
+      _DelayAccs[q][6] = _currentMillis;   //TriggerMillis
+    }
+  }
+#endif  //#if defined(NUMDELAYEDACCS)
 
             if (_accMoved > 0) {  //did I process this instruction? 1 = yes
               //Does it need a response?
@@ -2509,6 +2557,19 @@ void nowRail::runLayout(void) {
 #if defined(MP3BUSYPIN)
   nowRail::mp3Control();
 #endif
+#if defined(NUMDELAYEDACCS)//delayed tasks
+//Now run though the array to check for any items that have been set up to trigger
+  for(int q=0;q<_DelayAccsCount;q++){
+    if(_DelayAccs[q][5] > 0){//does this have a trigger set
+      if(_currentMillis - _DelayAccs[q][6] >= _DelayAccs[q][4]){//if its waiting is it time yet
+        //if it's time
+        _DelayAccs[q][5] = 0; //Unset the trigger so it only fires once
+        nowRail::sendAccessoryCommand(_DelayAccs[q][2], _DelayAccs[q][3], MESSRESPREQ);//send out accessory command
+      }
+    }
+  }
+#endif
+
 }
 
 // //Initialisastion routine...sets up ESP-NOW and other initialisation items

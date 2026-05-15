@@ -1,5 +1,5 @@
-/*nowRailV1_9_3
-13/02/2026
+/*nowRailV1_9_3HandControllerV5_7
+30/04/26
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -240,8 +240,6 @@ public:
   //int _pca9685LEDS[MAXPCA9685SERVOBOARDS][7];//board, port, accNum,dirOn,effect Type, max brightness, effect brightness
   //panel leds
   void addPCA9685PanelLed(byte board, byte port, int accNum, int dirOn, int effect, int maxBright);  //panel led... efect on/off or flashing
-  //1.9.3
-  //void setPCA9685LEDOpenDrain(byte boardAddress);//sets board to open drain for leds
 #endif
 
 #if defined(MP3BUSYPIN)
@@ -355,7 +353,6 @@ private:
   int _pca9685PanelLEDCount;
   byte _pca9685PanelLEDStates[MAXPCA9685SERVOBOARDS * 16][3];
   unsigned long _pca9685PanelLEDTimers[MAXPCA9685SERVOBOARDS * 16];
-  
 #endif
 #if defined(NOWDisc)
   //EEPROM
@@ -481,8 +478,6 @@ private:
   byte _nceclockData[8];
   byte _nceclockCount;
   byte _nceclockMode;
-  unsigned long _messageDelayMillis;
-  unsigned long _messageDelayTimer = 0;
 #endif
 
 #if defined(MP3BUSYPIN)
