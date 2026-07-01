@@ -1,5 +1,5 @@
-/*nowRailV1_9_3HandControllerV5_7
-30/04/26
+/*nowRailV2_1_2_HandControllerV5_7
+18/06/2026
 
    This tab contains custom functions that are called when nowrail receives commands.
    This allows users to write their own code driven by these events using the varibles passed.
@@ -116,6 +116,12 @@ void nowLocoFuncUpdate(int locoAddr, byte nowFuncNum, byte nowFuncState) {
     nonLatchedSelected = 1;          //let system know a non latch has been activated
     //Serial.println(nonLatchedSelected);
   }
+  Serial.print(locoAddr);
+  Serial.print(" : ");
+  Serial.print(nowFuncNum);
+  Serial.print(" : ");
+  Serial.println(nowFuncState);
+  Serial.println(myLayout.getLocoIDFromDCCAddr(locoAddr));//gets the locoID
 }
 
 //receives speed updates
@@ -198,7 +204,16 @@ void nowMomentButton(void) {
   */
 }
 
-
+//This function reports wifi channel updates
+void nowChannelUpdate(uint8_t channelNum, uint8_t channelState){ //channelNum = 1,6 or 11
+  Serial.print("wifi channel num: ");
+  Serial.println(channelNum);
+  if(channelState < 1){
+    Serial.println("Change command sent to Masterclock");
+  }else{
+    Serial.println("This board changing to new wifi channel");
+  }
+}
 //Example custom function
 
 //Example user written custom functions.

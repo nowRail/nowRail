@@ -1,12 +1,5 @@
-/*nowRailV2_0_0
-15/05/2026
-
-Additions
-2.0.0
-Adds delayed functions. This allows a function/s to be triggered after a period of time
-
-//bug fix 
-PCA9685 leds...flashing flickering at start up when not commanded...fixed
+/*nowRailV2_1_2
+01/07/2026
 
 MIT License
 Copyright (c) 2026 Simon Coward
@@ -45,11 +38,16 @@ void setup() {
   Serial.begin(115200);//Standard Serial Output to Serial monitor
   //Serial.begin(115200, SERIAL_8N2);//SERIAL_8N2 required if JMRICMRI connection
   Serial.println(F(__FILE__ " " __DATE__ " " __TIME__));  //File details
-
+  
   //Start the system
   myLayout.init();//This functions sets up ESP-NOW as well as other items needed for the system to run
-
+  
 }
+
+//unsigned long currentMillis;
+unsigned long timerMillis;
+uint16_t timerTime = 5000;
+byte timerState;
 
 void loop() {
   currentMillis = millis();

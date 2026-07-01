@@ -1,5 +1,5 @@
-/*nowRailV1_9_3HandControllerV5_7
-30/04/26
+/*nowRailV2_1_2
+18/06/2026
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -42,7 +42,7 @@
 #define ACCESSORYCOMMAND 2     //Accessory Command such as turnpout/lights/animation
 #define PANELUPDATE 3          //When accessory has moved a PANELUPDATE is broadcast so any control panels can update
 #define DCCLOCOSPEED 4         //DCC Loco Speed instruction
-#define DCCLOCOFUNCTION 5      //DCC Loco function instruction
+#define DCCLOCOFUNCTION 5      //DCC Loco function instruction...Loco controller version only
 #define FASTCLOCKUPDATE 6      //New fast Clock Time
 #define LAYOUTPOWERCOMMANDS 7  //Turns Power on/off emergency stop
 #define SENSORUPDATE 8         //Sensor Update
@@ -56,6 +56,13 @@
 #define DCCEXCUSTOMCMD 15  //allows 30 bytes of custom data
 #define SETCONSIST 16  //send consist creation data to ex rail /nce
 #define UNSETCONSIST 17 //send command to break consist
+#define STDLOCOFUNCTION 18 //Ability to send loco function over nowRail and to DCC EX (NOT NCE) 
+
+//#define STDLOCOFUNCTION 18
+#define LOCOFUNC 16       //
+#define LOCOFUNCSTATE 17  //
+#define LOCOADDRHIGH 18   //address high byte
+#define LOCOADDRLOW 19    //address low byte
 
 //#define SETCONSIST 16
 #define CONSISTNUMLOCOS 16
@@ -162,6 +169,7 @@ public:
   //1.5.0
   void sendClockTimeChange(byte hour, byte mins, byte seconds, byte day);  //updates MASTERCLOCK to specific time
   //loco stuff
+  byte getLocoIDFromDCCAddr(uint16_t dccAddr);//2_1_2 mod returns 255 if no valid loco id found
   int getLocoDCCAddress(byte locoID);                   //gets DCC address from _locoData[200][32]
   byte getLocoDCCFuncState(byte locoID, byte funcNum);  //gets function state _locoData[200][32]
   String getLocoName(byte locoID);                      //returns string of address _locoData[200][32]
@@ -204,7 +212,8 @@ public:
   void addStdPanelLed(int pin, int accNum, int dir);                             //Adds a panel LED connected directly to a board pin...pin goes HIGH when triggered
 
   void accProcessed(byte processed);
-  void sendDCCLocoFunc(byte locoID, int dccAddr, byte funcNum, byte funcState);
+  void stdLocoFunction(int dccAddr, byte funcNum, byte funcState);  //Standard method to send loco function for nowRail and DCC EX...NOT NCE CAB BUS 2_1_2 mod
+  void sendDCCLocoFunc(byte locoID, int dccAddr, byte funcNum, byte funcState); //loco controller version requires locoID
   void sendDCCLocoSpeed(int dccAddr, byte dccSpeed, byte dccDir);               //send DCC speed command
   void sendAccessoryCommand(int accNum, byte accInst, byte respReq);            //sends an accessory command
   void addStdPinButton(int pin, int accNum, int press1, int press2);            //adds standard pin buttons to system
@@ -240,14 +249,20 @@ public:
   //int _pca9685LEDS[MAXPCA9685SERVOBOARDS][7];//board, port, accNum,dirOn,effect Type, max brightness, effect brightness
   //panel leds
   void addPCA9685PanelLed(byte board, byte port, int accNum, int dirOn, int effect, int maxBright);  //panel led... efect on/off or flashing
+  //1.9.3
+  //void setPCA9685LEDOpenDrain(byte boardAddress);//sets board to open drain for leds
+  void setPCA695Servo(byte boardAddress, byte port, byte angle);
 #endif
 
 #if defined(MP3BUSYPIN)
   //void addMP3PlayTrack(int accNum,int dirOn, int trackMin, int trackMax, int playType, int playInterval);//AccNumber, dir, track min, track max, (single, random, order), time interval bwteen plays, state
   void addMP3PlayTrack(int accNum, int dirOn, int trackNum, int maxTrackNum, int mode);  //mode 0 = play now, 1 = random//state is current play state 1 = play
   void mp3PlayVolume(int vol);                                                           //sets the volume from default
-
-
+#endif
+#if defined(NUMDELAYEDACCS)
+  //uint8_t _DelayAccs[NUMDELAYEDACCS][7];  //TriggerAccNum,TriggerAccDir,DelaAccNum,DelayAccDir,DelayTime,Triggerstate,TriggerMillis
+  //int _DelayAccsCount;  
+  void addDelayedAccTrigger(int triggerAccNum,byte triggerAccDir,int delayedAccNum,byte delayedAccDir,int delayTime);
 #endif
 
 private:
@@ -338,7 +353,7 @@ private:
   int _pca9685ServoCount;
   void pca9685ServoControl();                                     //deals with servo movement in main loop
   void setupPCA9685Board(byte boardAddress, byte boardType);      //0_9_2 mods sets up servo boards, type 0 = servo, type 1 = led
-  void setPCA695Servo(byte boardAddress, byte port, byte angle);  //move servo to an angle
+  //void setPCA695Servo(byte boardAddress, byte port, byte angle);  //move servo to an angle
   //1.9.1 mod
   void detachPCA9685Servo(byte boardAddress, byte port);
   //0_9_2 LED mods
@@ -353,6 +368,7 @@ private:
   int _pca9685PanelLEDCount;
   byte _pca9685PanelLEDStates[MAXPCA9685SERVOBOARDS * 16][3];
   unsigned long _pca9685PanelLEDTimers[MAXPCA9685SERVOBOARDS * 16];
+  
 #endif
 #if defined(NOWDisc)
   //EEPROM
@@ -365,7 +381,7 @@ private:
 #endif
   void locoEEPROMUpdate(byte locoID);  //if eeprom is running will update the locoEEPROM date from locoData
   //Loco data system
-  byte _locoData[200][32];      //stores the loco data from eeprom
+  byte _locoData[200][32];      //stores the loco data from eeprom format at nowRail.cpp line 215
   byte _locoReCallData[32][2];  //0.9 modded     Stores the order of last 32 used locos, ID and speed
   byte _locoReCallDataFlag;
   byte _locoReCallPos;  //works out position of next loco in recall array
@@ -478,6 +494,8 @@ private:
   byte _nceclockData[8];
   byte _nceclockCount;
   byte _nceclockMode;
+  unsigned long _messageDelayMillis;
+  unsigned long _messageDelayTimer = 0;
 #endif
 
 #if defined(MP3BUSYPIN)
@@ -526,6 +544,11 @@ private:
   uint8_t readGT911TouchAddr(uint16_t regAddr, uint8_t *pBuf, uint8_t len);
   uint8_t readGT911TouchLocation(TouchLocation *pLoc, uint8_t num);
 #endif
+#if defined(NUMDELAYEDACCS)
+  uint32_t _DelayAccs[NUMDELAYEDACCS][7];  //TriggerAccNum,TriggerAccDir,DelaAccNum,DelayAccDir,DelayTime,Triggerstate,TriggerMillis
+  int _DelayAccsCount;  
+
+#endif
 };
 
 
@@ -564,6 +587,7 @@ extern "C" {
   extern void nowLocoBulkDataRX(void) __attribute__((weak));                                                                     //called when a bulk data upload has finished
  // extern void nowRFIDDataRec(uint8_t incomingData[], int len) __attribute__((weak));  
   extern void nowRFIDDataRec(uint8_t *incomingData, int len) __attribute__((weak)); 
+  extern void nowChannelUpdate(uint8_t channelNum, uint8_t channelState) __attribute__((weak)); 
 #if defined(__cplusplus)
 }
 #endif

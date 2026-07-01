@@ -1,5 +1,5 @@
-/*nowRailV2_0_0
-15/05/2026
+/*nowRailV2_1_2
+18/06/2026
 */
 
 #pragma once
@@ -55,14 +55,19 @@
 // #define MP3INTERVALMAX 10000 //random time gaps max
 // #define MP3VOLUME 27  //default volume (volumes are 0-30)
 
+//Verion 2_1_2 mods to prevent loop backs
+//DCC Systems
+#define MINSENDACCADDRESS 1
+#define MAXSENDACCADDRESS 2000
 //DCC EX Serial communication.............................................
 //WARNING MAke sure SERIALRX2 and SERIALTX2 are uncommented in this file just below DIAGNOSTICS_ON 
+//Accessory command range MINSENDACCADDRESS to MAXSENDACCADDRESS
 // #define DCCEXSSERIAL2_ON //best done on ESP32 Dev Module Writes DCC EX instructions to Serial 2...for Serial2 connection to DCC EX
 // #define DCCEXSERIAL_ON  //best done on ESP32 Dev Module Writes DCC EX instruction to Serial ... for debugging
 
 //NCE Cab bus..........................................................
 //See https://www.digitaltown.co.uk/nowRail.php#NCE
-//Accessory command range 1-2000
+//Accessory command range MINSENDACCADDRESS to MAXSENDACCADDRESS
 // #define CAB_BUS_ADDRESS 4 // This is the address on CAB BUS for the unit There are a limited number of addresses with the PowerCab
 // #define CAB_BUS_SHORTADDRON 0 //Loco Addresses 1-128 will be treated as Short Addresses, set to 0 for all LONG addresses
 // #define RS485ENABLLEPIN 4 //RS485 modules requires RX/TX at 9600 Baud and a transmit pin defined in this line 
@@ -79,11 +84,19 @@
 //DCC Decoder mode... reads accessory commands from any DCC system and sends them over nowRail
 //#define DCCDECODERPIN 4 //If board is being used as a DCC decoder this is the interrupt pin
 //#define ONEBITTIME 130  // If your DCC system does not work you can change this value. NCE systems and DCCEX seem to work between 130 - 180
+//Settings to alolow the address range received to be limited to stop loop backs
+#define MINRECACCADDRESS 1
+#define MAXRECACCADDRESS 2100
 
 //I2C Devices...........................................................
 
 //All I2C devices need the Wire.h uncommented
 //#include "Wire.h"
+//If you wish to set custom SDA and SDA pins as required on 
+//ESP32 C3 and S3 boards uncomment the lines below and set pin numbers
+//Commenting out will use the default pins as shown on the ESP32 Dev Module wiring diagrams 
+//#define CUSTOM_SDA 4 //SDA cutom pin number
+//#define CUSTOM_SCL 5 //SCL custom pin number
 
 //EEPROM...........................................................
 //See https://www.digitaltown.co.uk/nowRail.php#EEPROM
@@ -101,7 +114,7 @@
 #define SERVOMIN 450    //servo min value
 #define SERVOMAX 2000   //servo max value
 //see https://www.digitaltown.co.uk/nowRail.php#PCA9685Servo for more information
-#define PCA9685SERVODETACH 600 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
+#define PCA9685SERVODETACH 1500 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
 //See https://www.digitaltown.co.uk/nowRail.php#PCA9685Led for more information
 #define PCA9685FLASHTIMER 1000 //any flashing PCS 9685 panel LED or accessory Leds flash timing in milliseconds
 #define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode
@@ -132,3 +145,6 @@
 
 //See https://www.digitaltown.co.uk/nowRail.php#TURNOUTPULSE
 #define TURNOUTPULSE 500  //0.5 second pin HIGH to switch point/turnout
+
+//2_1_1 addition 
+#define DOUBLEPRESSAUPDATE_ON //Auto updates GT911, standard pin button and CD4021 buttons with press once/press second time to change states

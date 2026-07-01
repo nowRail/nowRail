@@ -1,5 +1,5 @@
-/*nowRailV1_9_3HandControllerV5_7
-30/04/26
+/*nowRailV2_1_2_HandControllerV5_7
+18/06/2026
 */
 
 
@@ -1182,7 +1182,7 @@ void drawFunctionBox(int func) {
 //Draws all the function boxes
 void screen1LocoFunctions() {
   int q;
-  if(screenMode == 1){//addded for non latching in case screen had moved on
+  if(screenMode == 1){//added for non latching in case screen had moved on
     for (q = 0; q < 10; q++) {
       drawFunctionBox(q + funcSet);  //draw all the function boxes
     }
