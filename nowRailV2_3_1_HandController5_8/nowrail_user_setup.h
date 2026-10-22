@@ -1,5 +1,5 @@
-/*nowRailV2_1_2
-18/06/2026
+/*nowRailV2_3_1_HandControllerV5_8
+09/09/2026
 */
 
 #pragma once
@@ -37,7 +37,7 @@
 //A MASTERCLOCK board is required for if WIFIMASTERCLOCKCHANGE is being used
 //#define MASTERCLOCK_ON    //this board is the master clock and will send out a broadcast to sync all other boards
 //1.8.3 https://www.digitaltown.co.uk/nowRail.php#MASTERCLOCK covered in video https://www.youtube.com/watch?v=Eih6xguq3gM at time point 20:20
-//#define REDUCEMASTERCLOCKDIAG //This reduces Masterclock messages to once per minute... reduced clutter when doing diagnostics
+#define REDUCEMASTERCLOCKDIAG //This reduces Masterclock messages to once per minute... reduced clutter when doing diagnostics
 
 
 //SERIAL Devices.........................................
@@ -61,16 +61,15 @@
 #define MAXSENDACCADDRESS 2000
 //DCC EX Serial communication.............................................
 //WARNING MAke sure SERIALRX2 and SERIALTX2 are uncommented in this file just below DIAGNOSTICS_ON 
-//Accessory command range MINSENDACCADDRESS to MAXSENDACCADDRESS
-// #define DCCEXSSERIAL2_ON //best done on ESP32 Dev Module Writes DCC EX instructions to Serial 2...for Serial2 connection to DCC EX
-// #define DCCEXSERIAL_ON  //best done on ESP32 Dev Module Writes DCC EX instruction to Serial ... for debugging
+//#define DCCEXSSERIAL2_ON //best done on ESP32 Dev Module Writes DCC EX instructions to Serial 2...for Serial2 connection to DCC EX
+//#define DCCEXSERIAL_ON  //best done on ESP32 Dev Module Writes DCC EX instruction to Serial ... for debugging
 
 //NCE Cab bus..........................................................
 //See https://www.digitaltown.co.uk/nowRail.php#NCE
-//Accessory command range MINSENDACCADDRESS to MAXSENDACCADDRESS
-// #define CAB_BUS_ADDRESS 4 // This is the address on CAB BUS for the unit There are a limited number of addresses with the PowerCab
-// #define CAB_BUS_SHORTADDRON 0 //Loco Addresses 1-128 will be treated as Short Addresses, set to 0 for all LONG addresses
-// #define RS485ENABLLEPIN 4 //RS485 modules requires RX/TX at 9600 Baud and a transmit pin defined in this line 
+//Accessory command range 1-2000
+//#define CAB_BUS_ADDRESS 4 // This is the address on CAB BUS for the unit There are a limited number of addresses with the PowerCab
+//#define CAB_BUS_SHORTADDRON 0 //Loco Addresses 1-128 will be treated as Short Addresses, set to 0 for all LONG addresses
+//#define RS485ENABLLEPIN 4 //RS485 modules requires RX/TX at 9600 Baud and a transmit pin defined in this line 
 
 //JMRI.....................................................................
 //See https://youtu.be/5YLXue_GavU
@@ -84,14 +83,12 @@
 //DCC Decoder mode... reads accessory commands from any DCC system and sends them over nowRail
 //#define DCCDECODERPIN 4 //If board is being used as a DCC decoder this is the interrupt pin
 //#define ONEBITTIME 130  // If your DCC system does not work you can change this value. NCE systems and DCCEX seem to work between 130 - 180
-//Settings to alolow the address range received to be limited to stop loop backs
 #define MINRECACCADDRESS 1
 #define MAXRECACCADDRESS 2100
-
 //I2C Devices...........................................................
 
 //All I2C devices need the Wire.h uncommented
-//#include "Wire.h"
+#include "Wire.h"
 //If you wish to set custom SDA and SDA pins as required on 
 //ESP32 C3 and S3 boards uncomment the lines below and set pin numbers
 //Commenting out will use the default pins as shown on the ESP32 Dev Module wiring diagrams 
@@ -103,7 +100,7 @@
 //NowRail uses EEPROM to store MASTERCLOCK time if you want to restart at the same time when restarting layout
 //EEPROM is also used in the loco controller to store the loco data
 //just put in the default eeprom address
-//#define NOWDisc 0x50    //Default Address of 24LC256 eeprom chip in Board
+#define NOWDisc 0x50    //Default Address of 24LC256 eeprom chip in Board
 //END EEPROM
 
 //PCA9685..............................................
@@ -113,11 +110,22 @@
 //#define MAXPCA9685SERVOBOARDS 5 //default is 1, increase if required
 #define SERVOMIN 450    //servo min value
 #define SERVOMAX 2000   //servo max value
-//see https://www.digitaltown.co.uk/nowRail.php#PCA9685Servo for more information
-#define PCA9685SERVODETACH 1500 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
-//See https://www.digitaltown.co.uk/nowRail.php#PCA9685Led for more information
+//Added in version 1.9.0 
 #define PCA9685FLASHTIMER 1000 //any flashing PCS 9685 panel LED or accessory Leds flash timing in milliseconds
-#define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode
+//1.9.1
+#define PCA9685SERVODETACH 600 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
+//1.9.3
+#define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode and invert signal to retain effects
+
+//MCP23017 chips/modules
+//See http://localhost/DigitalTown/nowRail.php#MCP23017 and https://youtu.be/7n4znzaACJE for more information
+//#define MCP23017BOARDS 1  //number of boards added
+#define MAXMCP23017BUTTONS 20 //maximum number of MCP23017 buttons/momentary switches
+#define MAXMCP23017TSWITCH 20 //maximum number of MCP23017 toggle/latching switches
+#define MAXMCP23017SENSOR 20 //maximum number of MCP23017 Sensors
+#define MAXMCP23017ACCS 40 //maximum number of MCP23017 accessories
+#define MAXMCP23017PANEL 40 //maximum number of MCP23017 panel leds
+#define MCP23017PANELFLASHTIMER 1000 //Panel pin flash rate
 
 //GT911 Touch Screen.....................................................
 //See https://www.youtube.com/watch?v=0s4-Wp4rPuw

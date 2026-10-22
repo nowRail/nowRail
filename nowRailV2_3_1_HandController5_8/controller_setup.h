@@ -1,11 +1,14 @@
-/*nowRailV2_1_2_HandControllerV5_7
-18/06/2026
+/*nowRailV2_3_1_HandControllerV5_8
+09/09/2026
 
 This tab was added to enable easier custom configuration
 */
 //As standard controller works with centre off for speed control
-#define CLOCKWISESPEEDINCREASE 1  //when uncommented controller will only increase speed (rev or fwd) by turning controller clockwise
+//#define CLOCKWISESPEEDINCREASE 1  //when uncommented controller will only increase speed (rev or fwd) by turning controller clockwise
 //#define REVENCODER 1  //Uncomment to reverse encoder speed increase direction...encoder wired backwards
+//comment the following lines unless required
+// #define SPEEDSTEPSX2 20 //For speed steps greater than value set steps speed will increase 2 x encoder clocks Values 0 - 126
+// #define SPEEDSTEPSX5 40 //For speed steps greater than value set steps speed will increase 5 x encoder clocks Values 0 - 126
 
 //This is required so that the controller knows what type of command it is sending to consists
 #define CONSISTTYPE 0   //0 means individual commands sent out for each loco, works with DCC EX and NCE (with limits)

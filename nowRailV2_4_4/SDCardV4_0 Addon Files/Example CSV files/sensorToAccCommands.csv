@@ -1,0 +1,5 @@
+Sensor Num,Sensor Inst,AccNum,AccInst,
+123,1,410,1,Sensor 123 with value 1 or greater will trigger AccNum 410 with inst 1
+122,56,411,1,
+124,1,412,0,
+125,56,413,0,Sensor 125 with value 56 or greater will trigger Acc 413 with command 0

@@ -1,5 +1,5 @@
-/*nowRailV2_1_2
-18/06/2026
+/*nowRailV2_4_4
+14/10/26
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -57,6 +57,12 @@
 #define SETCONSIST 16  //send consist creation data to ex rail /nce
 #define UNSETCONSIST 17 //send command to break consist
 #define STDLOCOFUNCTION 18 //Ability to send loco function over nowRail and to DCC EX (NOT NCE) 
+#define STRINGMESSAGE 19 //Text string message
+
+//STRINGMESSAGE 19
+#define STRADDRHIGH 16  //address high bytee
+#define STRADDRLOW 17   //address low byte  
+//message string bytes 18-47 carries string ...29 chars    
 
 //#define STDLOCOFUNCTION 18
 #define LOCOFUNC 16       //
@@ -163,6 +169,8 @@ public:
   byte rtcMinutes(void);
   byte rtcSeconds(void);
   byte rtcDays(void);
+  //2_3_0 addition string message
+  void sendString(uint16_t StringNum,String sendString);//sendString max 29 chars, any more chars will NOT be transmitted
   //1.5.4
   void sendRFIDData(uint8_t rfidData[],uint8_t len);//Takes a data structure and the structures size.. max data 30 bytes
   void sendClockSpeedChange(byte clockSpeed);  //changes MASTERCLOCK speed
@@ -209,7 +217,7 @@ public:
   void addGT911Button(int xPos, int yPos, int accNum, int press1, int press2);  //Adds std pin accessories to system
 #endif
   void sendPowerCommand(byte Command, int dccAddr, byte dccSpeed, byte dccDir);  //sends commands to base stations/controllers  POWEROFF 0 POWERON 1 EMERGENCYSTOP 2
-  void addStdPanelLed(int pin, int accNum, int dir);                             //Adds a panel LED connected directly to a board pin...pin goes HIGH when triggered
+  void addStdPanelLed(uint16_t pin, uint16_t accNum, byte dir); //changed from int to uint16_t 2_4_4 Adds a panel LED connected directly to a board pin...pin goes HIGH when triggered
 
   void accProcessed(byte processed);
   void stdLocoFunction(int dccAddr, byte funcNum, byte funcState);  //Standard method to send loco function for nowRail and DCC EX...NOT NCE CAB BUS 2_1_2 mod
@@ -228,6 +236,16 @@ public:
   void sensorCustomValue(uint16_t senNum, int32_t senValue); //Allows user to send custom value to a sensor
   void sendDCCEXCustomCmd(String cmdString);//will allow up to 30 bytes per command
   void sensorProcessed(void);//1.8.3
+
+
+#if defined(MCP23017BOARDS) //version 2.2.1 additions
+  void addMCP23017PinButton(byte board, byte pin, uint16_t accNum,uint16_t press1, uint16_t press2); //MCP23017Button[MCP23017BOARDS * 16][6] //0 = address, 1 = pin number, 2 = AccNum,    3 press 1, 4 press2, 5 buttonState
+  void addMCP23017PinTSwitch(byte board, byte pin, uint16_t accNum);//add toggle switches
+  void addMCP23017PinSensor(byte board, byte pin, uint16_t senNum);//add sensors
+  void addMCP23017PinAcc(byte board, byte pin, uint16_t accNum, uint16_t dir, uint16_t pulse, uint16_t setPinState);
+  void addMCP23017PinPanel(byte board, byte pin, uint16_t accNum, uint16_t dir, uint16_t flash);
+  void MCP23017SetPinState(uint8_t boardAddr,  uint16_t pin, byte state);//sets a pin on MCP23017 board to new state...if it's an output
+#endif
 
 #if defined(NUMCD4021CHIPS)
   void setupCD4021(int latchPin, int clockPin, int dataPin);                       // Sets up the pins
@@ -328,29 +346,33 @@ private:
   int _CD4021TSwitchPinCount;                    //Toggle switch pins added
 
 #endif
+void nowShiftOut(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t val);//custom shift out for 74HC595
 #if defined(NUM74HC595NCHIPS)
   void update74HC595N(void);
   byte _S74HC595NbyteData[NUM74HC595NCHIPS];  //creates array, 1 byte per board
-  int _S74HC595NBoardPins[3];
+  uint16_t _S74HC595NBoardPins[3];
   //wasn't sure if this would work...allowsd for 2 inputs per pin...one to turn on another to turn off
-  int _S74HC595NPins[NUM74HC595NCHIPS * 16][7];  //chip, pin,accid,dir, pulse,setpinState,currentPinState
-  int _S74HC595NPinAccCount;
+  uint16_t _S74HC595NPins[NUM74HC595NCHIPS * 16][7];  //chip, pin,accid,dir, pulse,setpinState,currentPinState
+  uint16_t _S74HC595NPinAccCount;
   unsigned long _S74HC595NPinAccMillis[NUM74HC595NCHIPS * 16];  //stores the time pulse started...if required
 
   //panel pins
-  int _S74HC595NPanelLedPins[NUM74HC595NCHIPS * 8][4];  //chip, pin,accNUm,dir
-  int _S74HC595NPanelLedPinCount;                       //keeps track of panel pins added
+  uint16_t _S74HC595NPanelLedPins[NUM74HC595NCHIPS * 8][4];  //chip, pin,accNUm,dir
+  uint16_t _S74HC595NPanelLedPinCount;                       //keeps track of panel pins added
   //add74HC595NPPanelLed(int chip,int pin,int accNum, int dir);
 #endif
+//wire library 2_3_0 mods
+uint8_t wireStart;
+void startWire(); //starts wire library
 //PCA9685Servos
 #if defined(MAXPCA9685SERVOBOARDS)
   byte _pca9685Addresses[MAXPCA9685SERVOBOARDS][2];  //0_9_2 mod 0 = address 1 = servo/0 led 1
   byte _pca9685AddressesCount;
   //1.9.1 mod
-  int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][9];               //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion),detachState (0 = attached)
+  uint16_t _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][9];               //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion),detachState (0 = attached)
   //int _pca9685Servos[MAXPCA9685SERVOBOARDS * 16][8];               //board, port, accNum, angle0, angle1,millisperstep,currentAngle,targetAngle  (millisperstep,currentAngle,targetAngle...added 1.0.3 for slow motion)
   unsigned long _pca9685ServosMillis[MAXPCA9685SERVOBOARDS * 16];  //stores last move time in milliseconds 1.0.3
-  int _pca9685ServoCount;
+  uint16_t _pca9685ServoCount;
   void pca9685ServoControl();                                     //deals with servo movement in main loop
   void setupPCA9685Board(byte boardAddress, byte boardType);      //0_9_2 mods sets up servo boards, type 0 = servo, type 1 = led
   //void setPCA695Servo(byte boardAddress, byte port, byte angle);  //move servo to an angle
@@ -359,17 +381,53 @@ private:
   //0_9_2 LED mods
   unsigned long _pca9685LEDTimers[MAXPCA9685SERVOBOARDS * 16][2];  //used for led flicker timings 0 = flicker time, 1 = wait interval
   byte _pca9685LEDStates[MAXPCA9685SERVOBOARDS * 16][3];           //current state, requested state values are 0 = OFF, 1 full brightness or  effect brightness, 2 effects state
-  int _pca9685LEDCount;                                            //keeps track of number of leds
+  uint16_t _pca9685LEDCount;                                            //keeps track of number of leds
   void pca9685LedControl(void);                                    //controls all leds effects..turns on off
   void setPCA695Led(byte boardAddress, byte port, int brightness);
-  int _pca9685LEDS[MAXPCA9685SERVOBOARDS * 16][7];  //board, port, accNum, dirOn, effect, maxBright, effect bright ?? effects 0 = ON/Off, 1 = fire, 2 = gas, 3 = arc
+  uint16_t _pca9685LEDS[MAXPCA9685SERVOBOARDS * 16][7];  //board, port, accNum, dirOn, effect, maxBright, effect bright ?? effects 0 = ON/Off, 1 = fire, 2 = gas, 3 = arc
   //panel leds
-  int _pca9685PanelLEDS[MAXPCA9685SERVOBOARDS * 16][6];  //board, port, accNum, dirOn, effect, maxBright
-  int _pca9685PanelLEDCount;
+  uint16_t _pca9685PanelLEDS[MAXPCA9685SERVOBOARDS * 16][6];  //board, port, accNum, dirOn, effect, maxBright
+  uint16_t _pca9685PanelLEDCount;
   byte _pca9685PanelLEDStates[MAXPCA9685SERVOBOARDS * 16][3];
   unsigned long _pca9685PanelLEDTimers[MAXPCA9685SERVOBOARDS * 16];
-  
 #endif
+
+//MCP23017Chips version 2_2_1 addition
+#if defined(MCP23017BOARDS)
+//used to make sure same pin isn't used for input and output
+uint8_t _MCP23017BoardAddresses[MCP23017BOARDS];//keeps track of board addresses
+void addMCP23017Item(byte board, byte pin, byte type); //adds items to the pin arrays
+uint16_t _MCP23017BoardAddressesCounter;//counts number of addresses
+uint16_t _MCP23017InputPinStates[MCP23017BOARDS][2];//used to store the pin states 0 = current state 1 = last state
+uint8_t MCP23017CheckAddress(uint8_t board);
+uint16_t MCP23017ReadPorts(uint8_t boardAddr);
+void MCP23017SetPorts();
+uint16_t _MCP23017PinType[MCP23017BOARDS * 16][3];//0 = address, 1 = pin,  2 - UsedType 0 = output/1 = input //
+uint16_t _MCP23017ItemsAdded;
+
+uint16_t _MCP23017Button[MAXMCP23017BUTTONS][6]; //0 = address, 1 = pin number, 2 = AccNum,  3 press 1, 4 press2, 5 buttonState
+uint16_t _MCP23017ButtonsCounter;  //keeps track of number of buttons added
+void MCP23017ProcessInputs();//reads all the data for inputs
+
+uint16_t _MCP23017TSwitch[MAXMCP23017TSWITCH][3];//toggle switch data board, pin, accNum
+uint16_t _MCP23017TSwitchCounter;
+
+uint16_t _MCP23017TSensor[MAXMCP23017SENSOR][3];//sensor data... board, pin, SensNum
+uint16_t _MCP23017TSensorCounter;
+
+uint16_t _MCP23017PinAcc[MAXMCP23017ACCS][7];// board, pin,accid,dir, pulse,setpinState,currentPinState
+uint16_t _MCP23017AccCounter;
+unsigned long _MCP23017PinAccMillis[MAXMCP23017ACCS]; //millis for pulse
+
+uint16_t _MCP23017Panel[MAXMCP23017PANEL][6];// board, pin,accid,dir, flash,state (should this be flashing)
+uint16_t _MCP23017PanelCounter;
+unsigned long _MCP23017PanelFlashTimer;
+uint8_t _MCP23017PanelFlashState;
+
+
+#endif
+
+
 #if defined(NOWDisc)
   //EEPROM
   void timeUpdateEEPROM();           //updates the EEPROM
@@ -446,7 +504,7 @@ private:
 #endif
 
   //Panel std buttons addStdPanelLed(int accNum, int dir)
-  int _StdPanelLed[20][3];  //only 20 allowed...pin accNUm Dir
+  uint16_t _StdPanelLed[20][3];  //only 20 allowed...pin accNUm Dir
   int _StdPanelLedCount;    //keeps track of how many stdPanelLed's have been added
 
   //power commands
@@ -588,6 +646,16 @@ extern "C" {
  // extern void nowRFIDDataRec(uint8_t incomingData[], int len) __attribute__((weak));  
   extern void nowRFIDDataRec(uint8_t *incomingData, int len) __attribute__((weak)); 
   extern void nowChannelUpdate(uint8_t channelNum, uint8_t channelState) __attribute__((weak)); 
+  extern void nowMP3TrackEnded() __attribute__((weak)); //2.2.1 addition
+  extern void nowStringRec(uint16_t StringNum,String recString) __attribute__((weak)); //2_3_0 addition
+  //Sd card additions for 2_4_4 external SD Add on
+  extern void sdsetup() __attribute__((weak)); //calls the setup 2_4_3 addition
+  extern void sdTimeUpdate(byte clockHour, byte clockMin, byte clockSecond, byte clockDay) __attribute__((weak)); //Passes times over for timed accessory and timetables stuff 2_4_3 addition
+  extern void sdCoreProcess(uint32_t sdMillis) __attribute__((weak)); //allows animtaion sequences to be called and run 2_4_3 addition
+  extern void sdAccCommands(uint16_t accNum, uint16_t accInst, uint32_t accMillis) __attribute__((weak));//allows for accessory driven animations to be started 2_4_3
+  extern void sdSensCommands(uint16_t senNum, uint16_t senInst) __attribute__((weak));//allows for sensor driven animations to be started 2_4_3
+
+
 #if defined(__cplusplus)
 }
 #endif

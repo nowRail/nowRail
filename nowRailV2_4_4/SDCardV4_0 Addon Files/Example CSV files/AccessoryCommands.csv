@@ -1,0 +1,10 @@
+Time,Accessory Num,State,Notes
+745,2000,0,House 1 Lights
+750,2004,0,Platform Lights
+800,2001,1,Post Office
+805,2002,1,Engine Shed interior
+810,2003,1,Workmans Hut
+1700,2001,0,Post Office Lights Out
+1755,2003,0,Workmans Hut
+1800,2002,0,Engine Shed Interior
+1900,2004,1,Platform Lights

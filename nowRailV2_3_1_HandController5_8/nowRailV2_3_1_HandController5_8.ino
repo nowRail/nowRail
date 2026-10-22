@@ -1,5 +1,7 @@
-/*nowRailV2_1_2_HandControllerV5_7
-18/06/2026
+/*nowRailV2_3_1_HandControllerV5_8
+09/09/2026
+
+HandControllerV5_8 adds adjustable speed ranges
 
 
 MIT License

@@ -1,0 +1,79 @@
+Time,ArrDep,Type,Display Num,Display Message,Notes
+1,Dep,Passenger,1,Big Town,
+145,Arr,Passenger,1,Small Town,Railcar (Pass)
+200,Dep,Passenger,1,Middle Town,Railcar (Pass)
+345,Arr,Passenger,1,Village,Railcar (Pass)
+400,Dep,Passenger,1,Port,Railcar (Pass)
+545,Arr,Passenger,1,Big Town,Railcar (Pass)
+600,Dep,Passenger,1,Small Town,Railcar (Pass)
+645,Arr,Passenger,2,Middle Town,
+700,Dep,Passenger,2,Village,
+705,Arr,Post,,Port,
+720,Dep,Post,,Big Town,
+730,Arr,Milk,,Small Town,
+735,Arr,Passenger,2,Middle Town,Railcar (Pass)
+745,Arr,Passenger,2,Village,
+800,Dep,Passenger,,Port,
+810,Dep,Passenger,1,Big Town,Railcar (Pass)
+815,Arr,Milk,,Small Town,
+835,Arr,Passenger,1,Middle Town,Railcar (Pass)
+845,Arr,Passenger,1,Village,
+900,Dep,Passenger,1,Port,
+910,Dep,Passenger,2,Big Town,Railcar (Pass)
+935,Arr,Passenger,2,Small Town,Railcar (Pass)
+945,Arr,Passenger,,Middle Town,
+1000,Dep,Passenger,1,Village,
+1010,Dep,Passenger,1,Port,Railcar (Pass)
+1015,Arr,Parcels,,Big Town,
+1030,Dep,Parcels,2,Small Town,
+1035,Arr,Passenger,2,Middle Town,Railcar (Pass)
+1045,Arr,Passenger,,Village,
+1100,Dep,Passenger,,Port,
+1110,Dep,Passenger,1,Big Town,Railcar (Pass)
+1135,Arr,Passenger,,Small Town,Railcar (Pass)
+1145,Arr,Passenger,1,Middle Town,
+1200,Dep,Passenger,,Village,
+1210,Dep,Passenger,,Port,Railcar (Pass)
+1235,Arr,Passenger,2,Big Town,Railcar (Pass)
+1245,Arr,Passenger,2,Small Town,
+1300,Dep,Passenger,,Middle Town,
+1310,Dep,Passenger,3,Village,Railcar (Pass)
+1335,Arr,Passenger,3,Port,Railcar (Pass)
+1345,Arr,Passenger,,Big Town,
+1400,Dep,Passenger,,Small Town,
+1410,Dep,Passenger,1,Middle Town,Railcar (Pass)
+1435,Arr,Passenger,1,Village,Railcar (Pass)
+1445,Arr,Passenger,,Port,
+1500,Dep,Passenger,2,Big Town,
+1510,Dep,Passenger,2,Small Town,Railcar (Pass)
+1535,Arr,Passenger,,Middle Town,Railcar (Pass)
+1545,Arr,Passenger,,Village,
+1600,Dep,Passenger,1,Port,
+1610,Dep,Passenger,1,Big Town,Railcar (Pass)
+1615,Arr,Parcels,,Small Town,
+1630,Dep,Parcels,,Middle Town,
+1635,Arr,Passenger,1,Village,Railcar (Pass)
+1645,Arr,Passenger,1,Port,
+1700,Dep,Passenger,,Big Town,
+1710,Dep,Passenger,,Small Town,Railcar (Pass)
+1735,Arr,Passenger,1,Middle Town,Railcar (Pass)
+1745,Arr,Passenger,1,Village,
+1700,Dep,Passenger,,Port,
+1810,Dep,Passenger,1,Big Town,Railcar (Pass)
+1835,Arr,Passenger,1,Small Town,Railcar (Pass)
+1845,Arr,Passenger,,Middle Town,
+1900,Dep,Passenger,1,Village,
+1910,Dep,Passenger,1,Port,Railcar (Pass)
+1935,Arr,Passenger,1,Big Town,Railcar (Pass)
+1945,Arr,Passenger,,Small Town,
+2000,Dep,Passenger,,Middle Town,
+2010,Dep,Passenger,,Village,Railcar (Pass)
+2035,Arr,Passenger,,Port,Railcar (Pass)
+2045,Arr,Passenger,,Big Town,
+2100,Dep,Passenger,,Small Town,
+2110,Dep,Passenger,,Middle Town,Railcar (Pass)
+2145,Arr,Passenger,,Village,
+2200,Dep,Passenger,,Port,
+2245,Arr,Passenger,,Big Town,
+2300,Dep,Passenger,,Small Town,
+2345,Arr,Passenger,,Middle Town,

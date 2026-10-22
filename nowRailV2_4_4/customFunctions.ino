@@ -1,5 +1,5 @@
-/*nowRailV2_1_2
-18/06/2026
+/*nowRailV2_4_4
+14/10/26
 
    This tab contains custom functions that are called when nowrail receives commands.
    This allows users to write their own code driven by these events using the varibles passed.
@@ -68,7 +68,7 @@ void nowPanelUpdate(int accNum, byte accInst) {
 //As sensors are triggered this function allows users to trigger animations or anything the user requires.
 //Outputs sensor updates
 //1.8.1 now allows int32_t senInst
-void nowSensorUpdate(int senNum, int32_t senInst) {
+void nowSensorUpdate(uint16_t senNum, int32_t senInst) {
   //Uncomment to see sensor traffic
   // Serial.print("sensor: ");
   // Serial.print(senNum);
@@ -102,7 +102,7 @@ void nowClockSpeedUpdate(){
 //It can also be used to send commands at set times, this may control lights to come on/off at certain times in a building
 //Function can be deleted
 void nowTimeEvents(byte clockSpeed, byte clockHour, byte clockMinute, byte clockSecond, byte clockDay) {
-
+  
 }
 
 //Loco commands...................................................................
@@ -186,6 +186,13 @@ void nowMomentButton(void) {
   */
 
 }
+
+//This function is called when the MP3 busy pin signals that no track is playing 
+//AND there is not another track in a random list set to play
+void nowMP3TrackEnded(){
+  Serial.println("MP3 track End");
+}
+
 //This function reports wifi channel updates
 void nowChannelUpdate(uint8_t channelNum, uint8_t channelState){ //channelNum = 1,6 or 11
   Serial.print("wifi channel num: ");
@@ -195,6 +202,14 @@ void nowChannelUpdate(uint8_t channelNum, uint8_t channelState){ //channelNum = 
   }else{
     Serial.println("This board changing to new wifi channel");
   }
+}
+
+//gets any strings that have been transmitted
+void nowStringRec(uint16_t StringNum,String recString){
+  Serial.print("void nowStringRec StringNum: ");
+  Serial.print(StringNum);
+  Serial.print(" : ");
+  Serial.println(recString);
 }
 
 

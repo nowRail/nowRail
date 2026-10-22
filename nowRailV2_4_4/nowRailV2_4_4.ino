@@ -1,5 +1,8 @@
-/*nowRailV2_1_2
-01/07/2026
+/*nowRailV2_4_4
+14/10/26
+
+2_4_4 adds automated start up and running for the SD Card add sketches as well as other SD Card driver functions
+
 
 MIT License
 Copyright (c) 2026 Simon Coward
@@ -33,7 +36,6 @@ nowRail myLayout(0x00, 0x01, 0x02, 0x03);
 //NON Nowrail variables
 unsigned long currentMillis = millis();
 
-
 void setup() {
   Serial.begin(115200);//Standard Serial Output to Serial monitor
   //Serial.begin(115200, SERIAL_8N2);//SERIAL_8N2 required if JMRICMRI connection
@@ -44,12 +46,9 @@ void setup() {
   
 }
 
-//unsigned long currentMillis;
-unsigned long timerMillis;
-uint16_t timerTime = 5000;
-byte timerState;
 
 void loop() {
   currentMillis = millis();
   myLayout.runLayout();//This sits in the main loop and needs to run as often as possible
+ 
 }

@@ -1,5 +1,5 @@
-/*nowRailV2_1_2
-18/06/2026
+/*nowRailV2_3_1
+22/08/26
 */
 #include "Arduino.h"
 #include "nowRail.h"
@@ -140,7 +140,7 @@ void nowRail::sendDCCLocoSpeed(int dccAddr, byte dccSpeed, byte dccDir) {
 }
 
 //2_1_2 mod to add standard DCC Loco function command WILL NOT WORK WITH NCE
-void nowRail::stdLocoFunction(int dccAddr, byte funcNum, byte funcState){
+void nowRail::stdLocoFunction(int dccAddr, byte funcNum, byte funcState) {
   memcpy(sendFifoBuffer[sendWriteFifoCounter], _transmissionPrefix, 10);
   sendFifoBuffer[sendWriteFifoCounter][MESSAGELOWID] = sendWriteFifoCounter;       //MessageLOW BYTE ID
   sendFifoBuffer[sendWriteFifoCounter][MESSAGEHIGHID] = sendWriteHighFifoCounter;  //MessageID HIGH BYTE
@@ -190,12 +190,13 @@ void nowRail::useEEPROM(byte discAddress) {  //sets up system to use EEPROM for 
   byte myByte;
   byte byteArray[32];
   int junk;
-#if defined(CUSTOM_SDA)
-  Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
-#else
-  Wire.begin();        //standard pins
-#endif
-  delay(100);
+// #if defined(CUSTOM_SDA)
+//   Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
+// #else
+//   Wire.begin();        //standard pins
+// #endif
+//   delay(100);
+  startWire();//2_3_0 mod
 
   q = 0;
   Serial.println("Read Wire");
@@ -324,7 +325,7 @@ void nowRail::useEEPROM(byte discAddress) {  //sets up system to use EEPROM for 
       Serial.print(" dccAddr: ");
       Serial.print((_locoData[q][2] * 256) + _locoData[q][3]);
       Serial.print(" Name: ");
-      for(w=13;w<32;w++){
+      for (w = 13; w < 32; w++) {
         Serial.print(char(_locoData[q][w]));
       }
       Serial.print(":");
@@ -626,12 +627,13 @@ void nowRail::addPCA9685PanelLed(byte board, byte port, int accNum, int dirOn, i
       _pca9685Addresses[_pca9685AddressesCount][1] = 1;
       //now set it up as a servo board
       if (_pca9685AddressesCount < 1) {
-#if defined(CUSTOM_SDA)
-        Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
-#else
-        Wire.begin();  //standard pins
-#endif
-        delay(100);
+// #if defined(CUSTOM_SDA)
+//   Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
+// #else
+//   Wire.begin();        //standard pins
+// #endif
+//   delay(100);
+  startWire();//2_3_0 mod
       }
       nowRail::setupPCA9685Board(_pca9685Addresses[_pca9685AddressesCount][0], _pca9685Addresses[_pca9685AddressesCount][1]);  //0_9_2 mod
       _pca9685AddressesCount++;
@@ -691,12 +693,13 @@ void nowRail::addPCA9685Led(byte board, byte port, int accNum, int dirOn, int ef
       _pca9685Addresses[_pca9685AddressesCount][1] = 1;
       //now set it up as a servo board
       if (_pca9685AddressesCount < 1) {
-#if defined(CUSTOM_SDA)
-        Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
-#else
-        Wire.begin();  //standard pins
-#endif
-        delay(100);
+// #if defined(CUSTOM_SDA)
+//   Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
+// #else
+//   Wire.begin();        //standard pins
+// #endif
+//   delay(100);
+  startWire();//2_3_0 mod
       }
       nowRail::setupPCA9685Board(_pca9685Addresses[_pca9685AddressesCount][0], _pca9685Addresses[_pca9685AddressesCount][1]);  //0_9_2 mod
       _pca9685AddressesCount++;
@@ -774,12 +777,13 @@ void nowRail::addPCA9685Servo(byte board, byte port, int accNum, int angle0, int
       _pca9685Addresses[_pca9685AddressesCount][1] = 0;
       //now set it up as a servo board
       if (_pca9685AddressesCount < 1) {
-#if defined(CUSTOM_SDA)
-        Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
-#else
-        Wire.begin();  //standard pins
-#endif
-        delay(100);
+// #if defined(CUSTOM_SDA)
+//   Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
+// #else
+//   Wire.begin();        //standard pins
+// #endif
+//   delay(100);
+  startWire();//2_3_0 mod
       }
       nowRail::setupPCA9685Board(_pca9685Addresses[_pca9685AddressesCount][0], _pca9685Addresses[_pca9685AddressesCount][1]);  //0_9_2 mod
       _pca9685AddressesCount++;
@@ -997,6 +1001,35 @@ void nowRail::accPulseOFF() {
     nowRail::update74HC595N();
   }
 #endif
+#if defined(MCP23017BOARDS)  //version 2.2.1 additions
+  for (q = 0; q < _MCP23017AccCounter; q++) {
+    if (_MCP23017PinAcc[q][4] > 0 && _MCP23017PinAcc[q][6] > 0) {
+      if (_currentMillis - _MCP23017PinAccMillis[q] >= TURNOUTPULSE) {
+        _MCP23017PinAcc[q][6] = 0;  //resest so doesnt keep triggering
+        //now reset the pin
+        if (_MCP23017PinAcc[q][5] > 0) {
+          MCP23017SetPinState(_MCP23017PinAcc[q][0], _MCP23017PinAcc[q][1], 0);
+        } else {
+          MCP23017SetPinState(_MCP23017PinAcc[q][0], _MCP23017PinAcc[q][1], 1);
+        }
+      }
+    }
+  }
+  //flashing MCP23017 Panel leds
+  if (_currentMillis - _MCP23017PanelFlashTimer >= MCP23017PANELFLASHTIMER) {
+    _MCP23017PanelFlashTimer = _currentMillis;  //all pins will flash together
+    for (q = 0; q < _MCP23017PanelCounter; q++) {
+      if (_MCP23017Panel[q][5] > 0) {
+        if (_MCP23017PanelFlashState > 0) {
+          _MCP23017PanelFlashState = 0;
+        } else {
+          _MCP23017PanelFlashState = 1;
+        }
+        MCP23017SetPinState(_MCP23017Panel[q][0], _MCP23017Panel[q][1], _MCP23017PanelFlashState);
+      }
+    }
+  }
+#endif
 }
 
 
@@ -1075,11 +1108,36 @@ void nowRail::setup74HC595N(int latchPin, int clockPin, int dataPin) {  // Sets 
   pinMode(dataPin, OUTPUT);
 }
 
+void nowRail::nowShiftOut(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t val) {
+  uint8_t i;
+
+  digitalWrite(clockPin, LOW);
+
+  for (i = 0; i < 8; i++) {
+    if (bitOrder == LSBFIRST) {
+      digitalWrite(dataPin, val & 1);
+      val >>= 1;
+    } else {
+      digitalWrite(dataPin, (val & 128) != 0);
+      val <<= 1;
+    }
+
+    delayMicroseconds(10);
+    digitalWrite(clockPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(clockPin, LOW);
+  }
+}
+
 void nowRail::update74HC595N() {
   digitalWrite(_S74HC595NBoardPins[LATCHPIN], LOW);
+  //delayMicroseconds(1);
   for (int q = NUM74HC595NCHIPS; q > 0; q--) {  //cycle through the chips v0_3 fix was cycling in wrong order
-    shiftOut(_S74HC595NBoardPins[DATAPIN], _S74HC595NBoardPins[CLOCKPIN], MSBFIRST, _S74HC595NbyteData[q - 1]);
+    nowShiftOut(_S74HC595NBoardPins[DATAPIN], _S74HC595NBoardPins[CLOCKPIN], MSBFIRST, _S74HC595NbyteData[q - 1]);
+    //shiftOut(_S74HC595NBoardPins[DATAPIN], _S74HC595NBoardPins[CLOCKPIN], MSBFIRST, _S74HC595NbyteData[q - 1]);
+    //delayMicroseconds(1);
   }
+
   digitalWrite(_S74HC595NBoardPins[LATCHPIN], HIGH);
 }
 
@@ -1099,8 +1157,9 @@ void nowRail::add74HC595NPinAcc(int chip, int pin, int accNum, int dir, int puls
       } else {  //low when triggered set to high
         bitSet(_S74HC595NbyteData[_S74HC595NPins[_S74HC595NPinAccCount][0]], _S74HC595NPins[_S74HC595NPinAccCount][1]);
       }
-      Serial.print("input");
-      Serial.println(_S74HC595NbyteData[_S74HC595NPins[_S74HC595NPinAccCount][0]], BIN);
+      Serial.print("output: ");
+      Serial.println(_S74HC595NPinAccCount);
+      //Serial.println(_S74HC595NbyteData[_S74HC595NPins[_S74HC595NPinAccCount][0]], BIN);
       nowRail::update74HC595N();
 
       _S74HC595NPinAccCount++;
@@ -1338,9 +1397,9 @@ void nowRail::buttonsPressed(void) {
       }
     }
 
-    //1.7.0 toggle switches
-
-
+#endif
+#if defined(MCP23017BOARDS)  //added 2.2.1 check the MCP23017BOARDS states
+    MCP23017ProcessInputs();
 #endif
   }
 }
@@ -1546,6 +1605,8 @@ void nowRail::checkRecFifo(void) {
   messageAddr = 1;
   uint16_t consistAddress;
   String DCCString;
+  String messageString;
+  uint16_t stringNum;
 
   //
   if (recWriteFifoCounter != recReadFifoCounter) {  //check if there is a message to be processed
@@ -1666,7 +1727,7 @@ void nowRail::checkRecFifo(void) {
 
             //DCC COMMANDS MUST HAVE ADDRESS from 1-2000
             //DCC EX Commands...best done on ESP32 Dev Module
-          
+
             //version 2_1_2 mods to prevent loop back by restricting address sent
             if (accNum >= MINSENDACCADDRESS && accNum <= MAXSENDACCADDRESS) {
 //#if defined(ESP32)
@@ -1712,25 +1773,43 @@ void nowRail::checkRecFifo(void) {
 #if defined(NUM74HC595NCHIPS)
             myBitSet = 0;
             for (q = 0; q < _S74HC595NPinAccCount; q++) {
-              if (_S74HC595NPins[q][2] == accNum && _S74HC595NPins[q][3] == accInst) {
-
-                //set the bit in the byte array
-                if (_S74HC595NPins[q][5] == HIGH) {
-                  bitSet(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
-                } else {
-                  bitClear(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
+              // Serial.print(_S74HC595NPins[q][2]);
+              // Serial.print(" : ");
+              // Serial.println(_S74HC595NPins[q][3]);
+              if (_S74HC595NPins[q][2] == accNum) {                                                                //if it's the correct accessory number
+                if (_S74HC595NPins[q][3] == accInst) {                                                             //trigger ON
+                  bitWrite(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1], _S74HC595NPins[q][5]);  //write bit to appropriate value
+                } else {                                                                                           //trigger Off
+                  if (_S74HC595NPins[q][5] > 0) {                                                                  //if ON is 1 set to Zero
+                    bitClear(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
+                  } else {
+                    bitSet(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
+                  }
                 }
-
+                myBitSet = 1;
                 _S74HC595NPins[q][6] = 1;
                 _S74HC595NPinAccMillis[q] = _currentMillis;
-
-                myBitSet = 1;  //set a flag that change has been made
               }
+              // if (_S74HC595NPins[q][2] == accNum && _S74HC595NPins[q][3] == accInst) {
+
+              //   //set the bit in the byte array
+              //   if (_S74HC595NPins[q][5] == HIGH) {
+              //     bitSet(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
+              //   } else {
+              //     bitClear(_S74HC595NbyteData[_S74HC595NPins[q][0]], _S74HC595NPins[q][1]);
+              //   }
+
+              //   _S74HC595NPins[q][6] = 1;
+              //   _S74HC595NPinAccMillis[q] = _currentMillis;
+
+              //   myBitSet = 1;  //set a flag that change has been made
+              // }
             }
             //do this after cycling through all items
-            if (myBitSet > 0) {  //if I set somethiing update the shift registers
+            if (myBitSet > 0) {  //if I set something update the shift registers
 
               nowRail::update74HC595N();
+              _accMoved = 1;
             }
 
 #endif
@@ -1773,6 +1852,20 @@ void nowRail::checkRecFifo(void) {
 
 #endif
 
+#if defined(MCP23017BOARDS)  //2.2.1 mods
+            for (q = 0; q < _MCP23017AccCounter; q++) {
+              if (_MCP23017PinAcc[q][2] == accNum && _MCP23017PinAcc[q][3] == accInst) {  //does this accessory exist
+                //function to change pin state
+                MCP23017SetPinState(_MCP23017PinAcc[q][0], _MCP23017PinAcc[q][1], _MCP23017PinAcc[q][5]);
+
+                if (_MCP23017PinAcc[q][4] > 0) {  //pulse
+                  _MCP23017PinAccMillis[q] = _currentMillis;
+                  _MCP23017PinAcc[q][6] = 1;  //set HIGH to say pin is in triggered state
+                }
+                _accMoved = 1;  //was processed
+              }
+            }
+#endif
 #if defined(MP3BUSYPIN)
             for (q = 0; q < _mp3NumAccs; q++) {  //work through the accessories
               // Serial.print("TT Track: ");
@@ -1868,6 +1961,21 @@ void nowRail::checkRecFifo(void) {
               }
             }
 #endif
+#if defined(MCP23017BOARDS)  //2.2.1 mods
+            for (q = 0; q < _MCP23017PanelCounter; q++) {
+              if (_MCP23017Panel[q][2] == accNum) {
+                if (_MCP23017Panel[q][3] == accInst) {                                 //does this panel accessory exist
+                  MCP23017SetPinState(_MCP23017Panel[q][0], _MCP23017Panel[q][1], 1);  //set pin high
+                  if (_MCP23017Panel[q][4] > 0) {
+                    _MCP23017Panel[q][5] = 1;  //set flashing mode
+                  }
+                } else {
+                  MCP23017SetPinState(_MCP23017Panel[q][0], _MCP23017Panel[q][1], 0);  //set pin low
+                  _MCP23017Panel[q][5] = 0;                                            //turn off any flashing
+                }
+              }
+            }
+#endif
 
 #if defined(NUM74HC595NCHIPS)
             myBitSet = 0;
@@ -1895,51 +2003,59 @@ void nowRail::checkRecFifo(void) {
 #endif
 //2_1_1 mod..updates states on double press Std pins, cd4021 pins gtp11
 #if defined(DOUBLEPRESSAUPDATE_ON)
-  //std pins
-  for(q=0;q<_stdPinButtonsCount;q++){
-    //  Serial.print("original _stdPinButtons[q][4]: ");
-    //  Serial.println(_stdPinButtons[q][4]);
-    if(_stdPinButtons[q][2] == accNum){  //if it's the correct accessory
-      if(accInst > 0){
-         _stdPinButtons[q][4] = 3; //update the button state ready for next press
-      }else{
-         _stdPinButtons[q][4] = 2;
-      }
-      //  Serial.print("_stdPinButtons[q][4]: ");
-      //  Serial.println(_stdPinButtons[q][4]);
-    }
-  }
-  //4021 pins
-  for(q=0;q<_CD4021PinCount;q++){
-      // Serial.print("original _CD4021PinButtons[q][5]: ");
-      // Serial.println(_CD4021PinButtons[q][5]);
-    if(_CD4021PinButtons[q][2] == accNum){  //if it's the correct accessory
-      if(accInst > 0){
-         _CD4021PinButtons[q][5] = 4; //update the button state ready for next press
-      }else{
-         _CD4021PinButtons[q][5] = 3;
-      }
-        // Serial.print("_CD4021PinButtons[q][5]: ");
-        // Serial.println(_CD4021PinButtons[q][5]);
-    }
-  }
-
- #if defined(GT911) //gt911 updates
-  for(q=0;q<_GT911ButtonCount;q++){
-    // Serial.print("original _GT911Buttons[q][5]: ");
-    // Serial.println(_GT911Buttons[q][5]);
-    if(_GT911Buttons[q][2] == accNum){  //if it's the correct accessory
-      if(accInst > 0){
-         _GT911Buttons[q][5] = 4; //update the button state ready for next press
-      }else{
-         _GT911Buttons[q][5] = 3;
-      }
-      // Serial.print("_GT911Buttons[q][5]: ");
-      // Serial.println(_GT911Buttons[q][5]);
-    }
-  }
- #endif           
+            //std pins
+            for (q = 0; q < _stdPinButtonsCount; q++) {
+              //  Serial.print("original _stdPinButtons[q][4]: ");
+              //  Serial.println(_stdPinButtons[q][4]);
+              if (_stdPinButtons[q][2] == accNum) {  //if it's the correct accessory
+                if (accInst > 0) {
+                  _stdPinButtons[q][4] = 3;  //update the button state ready for next press
+                } else {
+                  _stdPinButtons[q][4] = 2;
+                }
+                //  Serial.print("_stdPinButtons[q][4]: ");
+                //  Serial.println(_stdPinButtons[q][4]);
+              }
+            }
+            //4021 pins
+#if defined(NUMCD4021CHIPS)
+            for (q = 0; q < _CD4021PinCount; q++) {
+              // Serial.print("original _CD4021PinButtons[q][5]: ");
+              // Serial.println(_CD4021PinButtons[q][5]);
+              if (_CD4021PinButtons[q][2] == accNum) {  //if it's the correct accessory
+                if (accInst > 0) {
+                  _CD4021PinButtons[q][5] = 4;  //update the button state ready for next press
+                } else {
+                  _CD4021PinButtons[q][5] = 3;
+                }
+                // Serial.print("_CD4021PinButtons[q][5]: ");
+                // Serial.println(_CD4021PinButtons[q][5]);
+              }
+            }
 #endif
+#if defined(GT911)  //gt911 updates
+            for (q = 0; q < _GT911ButtonCount; q++) {
+              // Serial.print("original _GT911Buttons[q][5]: ");
+              // Serial.println(_GT911Buttons[q][5]);
+              if (_GT911Buttons[q][2] == accNum) {  //if it's the correct accessory
+                if (accInst > 0) {
+                  _GT911Buttons[q][5] = 4;  //update the button state ready for next press
+                } else {
+                  _GT911Buttons[q][5] = 3;
+                }
+                // Serial.print("_GT911Buttons[q][5]: ");
+                // Serial.println(_GT911Buttons[q][5]);
+              }
+            }
+#endif
+#if defined(MCP23017BOARDS)  //2.2.2 mod
+            for (q = 0; q < _MCP23017ButtonsCounter; q++) {
+              if (_MCP23017Button[q][2] == accNum) {
+                _MCP23017Button[q][5] = accInst;
+              }
+            }
+#endif
+#endif  //DOUBLEPRESSAUPDATE_ON
 
             break;
           case DCCLOCOSPEED:
@@ -2060,17 +2176,17 @@ void nowRail::checkRecFifo(void) {
             //send DCC loco func command
 #if defined(DCCEXSSERIAL2_ON)
             //if (funcNum > 28) {
-              Serial2.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
+            Serial2.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
             // } else {
             //   Serial2.print(funcFirstString);
             // }
 #endif
             //serial print DCC loco func command
-#if defined(DCCEXSERIAL_ON)  //SEND the same command over Serial
-            //if (funcNum > 28) {
-              Serial.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
+#if defined(DCCEXSERIAL_ON)  //SEND the same command over Serial \
+                             //if (funcNum > 28) {
+            Serial.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
             //} else {
-              //Serial.println(funcFirstString);
+            //Serial.println(funcFirstString);
             //}
 #endif
 
@@ -2457,7 +2573,7 @@ A loco is set to the current loco in use and then added to the consist but each 
 
             // #endif
             break;
-          case STDLOCOFUNCTION://Standard loco function for nowRail and DCC EX NOT NCE
+          case STDLOCOFUNCTION:  //Standard loco function for nowRail and DCC EX NOT NCE
             // byte funcNum;
             // byte funcState;
             // byte funcValue;
@@ -2544,22 +2660,32 @@ A loco is set to the current loco in use and then added to the consist but each 
 #endif
             //send DCC loco func command
 #if defined(DCCEXSSERIAL2_ON)
-           // if (funcNum > 28) {
-              Serial2.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
-           // } else {
-           //   Serial2.print(funcFirstString);
-          //  }
+            // if (funcNum > 28) {
+            Serial2.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
+            // } else {
+            //   Serial2.print(funcFirstString);
+            //  }
 #endif
             //serial print DCC loco func command
-#if defined(DCCEXSERIAL_ON)  //SEND the same command over Serial
-            //if (funcNum > 28) {
-              Serial.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
+#if defined(DCCEXSERIAL_ON)  //SEND the same command over Serial \
+                             //if (funcNum > 28) {
+            Serial.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
             //} else {
-              //Serial.println(funcFirstString);
+            //Serial.println(funcFirstString);
             //}
 #endif
             break;
 
+          case STRINGMESSAGE:  //2_3_0 addition
+            stringNum = (recFifoBuffer[recReadFifoCounter][STRADDRHIGH] * 256) + recFifoBuffer[recReadFifoCounter][STRADDRLOW];
+            // messageString = "ABC123";
+            for (q = 0; q < 29; q++) {
+              if (recFifoBuffer[recReadFifoCounter][q + 18] > 0) {  //don't pass NUL
+                messageString = messageString + char(recFifoBuffer[recReadFifoCounter][q + 18]);
+              }
+            }
+            nowStringRec(stringNum, messageString);
+            break;
           default:
             Serial.print("Unknown MessageType: ");
             Serial.println(recFifoBuffer[recReadFifoCounter][MESSAGETYPE]);
@@ -3011,7 +3137,7 @@ void nowRail::accDecoder(byte AddressByte, byte InstructionByte, byte ErrorByte)
       _lastDCCAccCommand[1] = dir;
 
       // 2_1_2 mod to prevent loop backs
-      if(AccAddr >= MINRECACCADDRESS && AccAddr <= MAXRECACCADDRESS){
+      if (AccAddr >= MINRECACCADDRESS && AccAddr <= MAXRECACCADDRESS) {
         //now add commands to sendfifo
         nowRail::sendAccessoryCommand(AccAddr, dir, MESSRESPREQ);  //1 response required
       }
@@ -3056,12 +3182,13 @@ void nowRail::addGT911Screen(int GT911ResetPin, int GT911IntPin) {
   _GT911_INT = GT911IntPin;      //CTP  INT
   _addr = GT911;
   uint8_t re = 0;
-#if defined(CUSTOM_SDA)
-  Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
-#else
-  Wire.begin();        //standard pins
-#endif
-  delay(100);
+// #if defined(CUSTOM_SDA)
+//   Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
+// #else
+//   Wire.begin();        //standard pins
+// #endif
+//   delay(100);
+  startWire();//2_3_0 mod
   pinMode(_GT911_RESET, OUTPUT);
   pinMode(_GT911_INT, OUTPUT);
   digitalWrite(_GT911_RESET, LOW);
@@ -3881,6 +4008,11 @@ void nowRail::mp3Control() {  //deals with multi track play etc
         _mp3Millis = _currentMillis;
       }
     }
+    if (_mp3PlayNextTrack > 0 && _mp3BusyHigh == 1) {
+      // Serial.println(_mp3BusyHigh);
+      if (nowMP3TrackEnded)  //external function
+        nowMP3TrackEnded();
+    }
   }
 }
 #endif
@@ -4059,28 +4191,439 @@ void nowRail::formConsist(byte numCLocos, int16_t consistAddress, int16_t LeadLo
 }
 
 //2_1_2 addition
-byte nowRail::getLocoIDFromDCCAddr(uint16_t dccAddr){
+byte nowRail::getLocoIDFromDCCAddr(uint16_t dccAddr) {
   byte dccHighByte;
   byte dccLowByte;
   byte retLocoID = 255;
   byte q;
-  
+
   dccHighByte = dccAddr >> 8;
   dccLowByte = dccAddr;
   // Serial.print("dccHighByte: ");
   // Serial.print(dccHighByte);
   // Serial.print(" dccLowByte: ");
   // Serial.println(dccLowByte);
-  for(q=0;q<200;q++){//work through the array
-    if(_locoData[q][2] == dccHighByte && _locoData[q][3] == dccLowByte){
+  for (q = 0; q < 200; q++) {  //work through the array
+    if (_locoData[q][2] == dccHighByte && _locoData[q][3] == dccLowByte) {
       // Serial.print("dccAddr: ");
       // Serial.print(dccAddr);
       // Serial.print(" LocoID: ");
       // Serial.println(q);
       retLocoID = q;
-      q = 201;//exit for
+      q = 201;  //exit for
     }
-
   }
   return retLocoID;
 }
+
+// uint8_t _MCP23017BoardAddresses[MCP23017BOARDS];//keeps track of board addresses
+// uint16_t _MCP23017BoardAddressesCounter;//counts number of addresses
+// uint8_t MCP23017CheckAddress(uint8_t board);
+// MCP23017BOARDS 1
+#if defined(MCP23017BOARDS)  //version 2.2.1 additions
+//check if a board exists
+uint8_t nowRail::MCP23017CheckAddress(uint8_t board) {
+  byte errorState = 0;
+  uint8_t q;
+  uint8_t matchFound;
+  for (q = 0; q < _MCP23017BoardAddressesCounter; q++) {
+    // Serial.print("t: ");
+    // Serial.println(_MCP23017BoardAddresses[q],HEX);
+    if (board == _MCP23017BoardAddresses[q]) {
+      matchFound++;
+    }
+  }
+  // Serial.print("M: ");
+  // Serial.println(matchFound);
+  if (matchFound < 1) {                                     //match NOT found
+    if (_MCP23017BoardAddressesCounter < MCP23017BOARDS) {  //add address to array
+      _MCP23017BoardAddresses[_MCP23017BoardAddressesCounter] = board;
+      //Serial.println(_MCP23017BoardAddresses[_MCP23017BoardAddressesCounter], HEX);
+      _MCP23017BoardAddressesCounter++;
+    } else {
+      Serial.println("WARNING: MCP23017 Item not added, too many board addresses in system. Board: 0x" + String(board, HEX) + " Increase MCP23017BOARDS in nowrail_usersetup.h");
+      errorState = 1;
+    }
+  }
+// #if defined(CUSTOM_SDA)
+//   Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
+// #else
+//   Wire.begin();        //standard pins
+// #endif
+//   delay(100);
+  startWire();//2_3_0 mod
+  return errorState;
+}
+
+
+
+//add a button pin
+void nowRail::addMCP23017PinButton(byte board, byte pin, uint16_t accNum, uint16_t press1, uint16_t press2) {  //MCP23017Button[MCP23017BOARDS * 16][6] //0 = address, 1 = pin number, 2 = AccNum,    3 press 1, 4 press2, 5 buttonState
+  uint16_t q;
+  uint8_t errorFound;
+  uint8_t boardExists;
+  //check if this is a valid address...creates a list of addresses
+  errorFound = MCP23017CheckAddress(board);
+
+  if (errorFound < 1) {
+    //
+    if (_MCP23017ButtonsCounter < MAXMCP23017BUTTONS) {
+      //check if pin is already being used as an output
+      for (q = 0; q < _MCP23017ItemsAdded; q++) {  //check already added items
+        //check if this board/pin combination is being used as an output
+        if (board == _MCP23017PinType[q][0] && _MCP23017PinType[q][1] == pin && _MCP23017PinType[q][2] < 1) {  //is this board pin combination already an OUTPUT?
+          Serial.println("addMCP23017PinButton: Button not added. Board:" + String(board, HEX) + " Pin:" + String(pin) + "Already Set as OUTPUT!");
+          errorFound++;
+        }
+      }
+      if (errorFound < 1) {              //no errors so set up new button
+        addMCP23017Item(board, pin, 1);  //INPUT
+        //now add the button details
+        _MCP23017Button[_MCP23017ButtonsCounter][0] = board;
+        _MCP23017Button[_MCP23017ButtonsCounter][1] = pin;
+        _MCP23017Button[_MCP23017ButtonsCounter][2] = accNum;
+        _MCP23017Button[_MCP23017ButtonsCounter][3] = press1;
+        _MCP23017Button[_MCP23017ButtonsCounter][4] = press2;
+        _MCP23017ButtonsCounter++;
+      }
+    } else {  //too many buttons
+      Serial.println("addMCP23017PinButton: Button not added, too many in system. Board:" + String(board, HEX) + " Pin:" + String(pin) + "AccNum: " + String(accNum));
+      Serial.println("Increase the value of MAXMCP23017BUTTONS in nowrail_user_setup.h");
+    }
+  }
+}
+
+//add toggle switches
+void nowRail::addMCP23017PinTSwitch(byte board, byte pin, uint16_t accNum) {
+  uint16_t q;
+  uint8_t errorFound;
+  //uint8_t boardExists;
+  //check if this is a valid address...creates a list of addresses
+  errorFound = MCP23017CheckAddress(board);  //error message broadcast by function
+  if (errorFound < 1) {                      //if no error returned
+    if (_MCP23017TSwitchCounter < MAXMCP23017TSWITCH) {
+      for (q = 0; q < _MCP23017ItemsAdded; q++) {                                                              //check already added items
+        if (board == _MCP23017PinType[q][0] && _MCP23017PinType[q][1] == pin && _MCP23017PinType[q][2] < 1) {  //is this board pin combination already an OUTPUT?
+          Serial.println("addMCP23017PinTSwitch: TSwitch not added. Board:" + String(board, HEX) + " Pin:" + String(pin) + "Already Set as OUTPUT!");
+          errorFound++;
+        }
+      }
+      if (errorFound < 1) {              //add the pin to the OUTPUT list
+        addMCP23017Item(board, pin, 1);  //INPUT
+        //Now add the TSwitch
+        _MCP23017TSwitch[_MCP23017TSwitchCounter][0] = board;
+        _MCP23017TSwitch[_MCP23017TSwitchCounter][1] = pin;
+        _MCP23017TSwitch[_MCP23017TSwitchCounter][2] = accNum;
+        _MCP23017TSwitchCounter++;
+      }
+    } else {  //to many TSwitch
+      Serial.println("addMCP23017PinTSwitch: TSwitch not added, too many in system. Board:" + String(board, HEX) + " Pin:" + String(pin) + "accNum: " + String(accNum));
+      Serial.println("Increase the value of MAXMCP23017TSWITCH in nowrail_user_setup.h");
+    }
+  }
+}
+
+//sensors
+void nowRail::addMCP23017PinSensor(byte board, byte pin, uint16_t senNum) {
+  uint16_t q;
+  uint8_t errorFound;
+  //uint8_t boardExists;
+  //check if this is a valid address...creates a list of addresses
+  errorFound = MCP23017CheckAddress(board);  //error message broadcast by function
+  if (errorFound < 1) {                      //if no error returned
+    if (_MCP23017TSensorCounter < MAXMCP23017SENSOR) {
+      for (q = 0; q < _MCP23017ItemsAdded; q++) {                                                              //check already added items
+        if (board == _MCP23017PinType[q][0] && _MCP23017PinType[q][1] == pin && _MCP23017PinType[q][2] < 1) {  //is this board pin combination already an OUTPUT?
+          Serial.println("addMCP23017PinSensor: Sensor not added. Board:" + String(board, HEX) + " Pin:" + String(pin) + "Already Set as OUTPUT!");
+          errorFound++;
+        }
+      }
+      if (errorFound < 1) {              //add the pin to the OUTPUT list
+        addMCP23017Item(board, pin, 1);  //INPUT
+        //Now add the TSwitch
+        _MCP23017TSensor[_MCP23017TSensorCounter][0] = board;
+        _MCP23017TSensor[_MCP23017TSensorCounter][1] = pin;
+        _MCP23017TSensor[_MCP23017TSensorCounter][2] = senNum;
+        _MCP23017TSensorCounter++;
+      }
+    } else {  //to many Sensor
+      Serial.println("addMCP23017PinSensor: Sensor not added, too many in system. Board:" + String(board, HEX) + " Pin:" + String(pin) + "senNum: " + String(senNum));
+      Serial.println("Increase the value of MAXMCP23017SENSOR in nowrail_user_setup.h");
+    }
+  }
+}
+
+//add an accessory
+void nowRail::addMCP23017PinAcc(byte board, byte pin, uint16_t accNum, uint16_t dir, uint16_t pulse, uint16_t setPinState) {
+  uint16_t q;
+  uint8_t errorFound;
+  //check if this is a valid address...creates a list of addresses
+  errorFound = MCP23017CheckAddress(board);  //error message broadcast by function
+  if (errorFound < 1) {
+    if (_MCP23017AccCounter < MAXMCP23017ACCS) {
+      for (q = 0; q < _MCP23017ItemsAdded; q++) {                                                              //check already added items
+        if (board == _MCP23017PinType[q][0] && _MCP23017PinType[q][1] == pin && _MCP23017PinType[q][2] > 0) {  //is this board pin combination already an INPUT?
+          Serial.println("addMCP23017PinAcc: Accessory not added. Board:" + String(board, HEX) + " Pin:" + String(pin) + "Already Set as OUTPUT!");
+          errorFound++;
+        }
+      }
+      if (errorFound < 1) {              //add the pin to the INPUT list
+        addMCP23017Item(board, pin, 0);  //OUTPUT
+        // //Now add the Acc
+        _MCP23017PinAcc[_MCP23017AccCounter][0] = board;
+        _MCP23017PinAcc[_MCP23017AccCounter][1] = pin;
+        _MCP23017PinAcc[_MCP23017AccCounter][2] = accNum;
+        _MCP23017PinAcc[_MCP23017AccCounter][3] = dir;
+        _MCP23017PinAcc[_MCP23017AccCounter][4] = pulse;
+        _MCP23017PinAcc[_MCP23017AccCounter][5] = setPinState;
+        _MCP23017AccCounter++;
+      }
+    } else {  //to many Accs
+      Serial.println("addMCP23017PinAcc: Acc not added, too many in system. Board:" + String(board, HEX) + " Pin:" + String(pin) + " accNum: " + String(accNum) + " dir: " + String(dir));
+      Serial.println("Increase the value of MAXMCP23017ACCS in nowrail_user_setup.h");
+    }
+  }
+}
+
+
+
+void nowRail::addMCP23017PinPanel(byte board, byte pin, uint16_t accNum, uint16_t dir, uint16_t flash) {
+  uint16_t q;
+  uint8_t errorFound;
+  //check if this is a valid address...creates a list of addresses
+  errorFound = MCP23017CheckAddress(board);  //error message broadcast by function
+  if (errorFound < 1) {
+    if (_MCP23017PanelCounter < MAXMCP23017PANEL) {
+      for (q = 0; q < _MCP23017ItemsAdded; q++) {                                                              //check already added items
+        if (board == _MCP23017PinType[q][0] && _MCP23017PinType[q][1] == pin && _MCP23017PinType[q][2] > 0) {  //is this board pin combination already an INPUT?
+          Serial.println("addMCP23017PinPanel: Panel pin not added. Board:" + String(board, HEX) + " Pin:" + String(pin) + "Already Set as OUTPUT!");
+          errorFound++;
+        }
+      }
+      if (errorFound < 1) {              //add the pin to the INPUT list
+        addMCP23017Item(board, pin, 0);  //OUTPUT
+        // //Now add the Panel pin
+        _MCP23017Panel[_MCP23017PanelCounter][0] = board;
+        _MCP23017Panel[_MCP23017PanelCounter][1] = pin;
+        _MCP23017Panel[_MCP23017PanelCounter][2] = accNum;
+        _MCP23017Panel[_MCP23017PanelCounter][3] = dir;
+        _MCP23017Panel[_MCP23017PanelCounter][4] = flash;  //steady or flashing
+        _MCP23017PanelCounter++;
+      }
+    } else {  //to many Accs
+      Serial.println("addMCP23017PinPanel: Panel pin not added, too many in system. Board:" + String(board, HEX) + " Pin:" + String(pin) + " accNum: " + String(accNum) + " dir: " + String(dir));
+      Serial.println("Increase the value of MAXMCP23017PANEL in nowrail_user_setup.h");
+    }
+  }
+}
+//checks if pin set up and if not adds it
+void nowRail::addMCP23017Item(byte board, byte pin, byte type) {
+  int q;
+  byte itemFound;
+  uint16_t MCP23017registerData;
+  for (q = 0; q < _MCP23017ItemsAdded; q++) {
+    if (_MCP23017PinType[q][0] == board && _MCP23017PinType[q][1] == pin) {
+      itemFound++;
+    }
+  }
+  if (itemFound < 1) {
+    _MCP23017PinType[_MCP23017ItemsAdded][0] = board;
+    _MCP23017PinType[_MCP23017ItemsAdded][1] = pin;
+    _MCP23017PinType[_MCP23017ItemsAdded][2] = type;
+    _MCP23017ItemsAdded++;
+
+    //now the MCP23017 port registers needs updating
+    for (q = 0; q < _MCP23017ItemsAdded; q++) {
+      // Serial.print(_MCP23017PinType[q][0],HEX);
+      // Serial.print(" : ");
+      // Serial.print(_MCP23017PinType[q][1]);
+      // Serial.print(" : ");
+      // Serial.println(_MCP23017PinType[q][2]);
+      if (_MCP23017PinType[q][0] == board) {
+        bitWrite(MCP23017registerData, _MCP23017PinType[q][1], _MCP23017PinType[q][2]);
+      }
+
+      uint8_t aPinStates;
+      uint8_t bPinStates;
+      aPinStates = MCP23017registerData;
+      bPinStates = MCP23017registerData >> 8;
+      Wire.beginTransmission(board);
+      Wire.write(0x00);        // Port A register IODIRA
+      Wire.write(aPinStates);  // set PORT to output
+      Wire.endTransmission();
+      //Set Port B
+      Wire.beginTransmission(board);
+      Wire.write(0x01);        // Port A register IODIRA
+      Wire.write(bPinStates);  // set PORT to output
+      Wire.endTransmission();
+    }
+
+    // Serial.print("reg: ");
+    // Serial.print(board,HEX);
+    // Serial.print(" : ");
+    // Serial.println(MCP23017registerData,BIN);
+  }
+}
+
+//get the input state for all pins...working
+uint16_t nowRail::MCP23017ReadPorts(uint8_t boardAddr) {
+  uint8_t setPort;
+  uint8_t aReturnByte;
+  uint8_t bReturnByte;
+  uint16_t inputStates;
+  //Serial.println(boardAddr,HEX);
+  setPort = 0x12;  //GPIO_A = 12... data sheet page 18
+  Wire.beginTransmission(boardAddr);
+  Wire.write(setPort);  // set port
+  Wire.endTransmission();
+  Wire.requestFrom((uint16_t)boardAddr, 1);
+  // Serial.print("PortA: ");
+  aReturnByte = Wire.read();
+  // Serial.println(aReturnByte, BIN);
+
+  setPort = 0x13;  //GPIO_B = 13... data sheet page 18
+  Wire.beginTransmission(boardAddr);
+  Wire.write(setPort);  // set port
+  Wire.endTransmission();
+  Wire.requestFrom((uint16_t)boardAddr, 1);
+  // Serial.print("PortB: ");
+  bReturnByte = Wire.read();
+  inputStates = (bReturnByte << 8) + aReturnByte;
+  // Serial.println(bReturnByte, BIN);
+  //Serial.println(inputStates, BIN);  //Returning correct values
+  return inputStates;
+}
+
+//reads the incoming data ready for buttons/switches/sensors
+//called when buttons are processed (debounce)
+void nowRail::MCP23017ProcessInputs() {
+  uint16_t q;
+  uint16_t w;
+  //process needs to read through the number of chips
+  for (q = 0; q < _MCP23017BoardAddressesCounter; q++) {  //work through the boards and read all the pins
+    _MCP23017InputPinStates[q][0] = MCP23017ReadPorts(_MCP23017BoardAddresses[q]);
+    //process each board as soon as data received
+
+    //push buttons
+    for (w = 0; w < _MCP23017ButtonsCounter; w++) {
+      //board
+      if (_MCP23017BoardAddresses[q] == _MCP23017Button[w][0]) {  //if the button is for this board
+        //check to see if pin is High
+
+        if (bitRead(_MCP23017InputPinStates[q][0], _MCP23017Button[w][1]) > 0) {
+          //I now have the board and pin so trigger accessory
+          sendAccessoryCommand(_MCP23017Button[w][2], _MCP23017Button[w][3 + _MCP23017Button[w][5]], MESSRESPREQ);  //1 response required
+          if (_MCP23017Button[w][5] > 0) {
+            _MCP23017Button[w][5] = 0;
+          } else {
+            _MCP23017Button[w][5] = 1;
+          }
+        }
+      }
+    }
+    //toggle switches
+    for (w = 0; w < _MCP23017TSwitchCounter; w++) {                //now work through all the toggle switches
+      if (_MCP23017BoardAddresses[q] == _MCP23017TSwitch[w][0]) {  //if the button is for this board
+        if (bitRead(_MCP23017InputPinStates[q][0], _MCP23017TSwitch[w][1]) != bitRead(_MCP23017InputPinStates[q][1], _MCP23017TSwitch[w][1])) {
+          //has the pin value changed since last read... if so trigger accessory
+          sendAccessoryCommand(_MCP23017TSwitch[w][2], bitRead(_MCP23017InputPinStates[q][0], _MCP23017TSwitch[w][1]), MESSRESPREQ);  // response required
+        }
+      }
+    }
+    //sensors
+    for (w = 0; w < _MCP23017TSensorCounter; w++) {                //now work through all the toggle switches
+      if (_MCP23017BoardAddresses[q] == _MCP23017TSensor[w][0]) {  //if the button is for this board
+        if (bitRead(_MCP23017InputPinStates[q][0], _MCP23017TSensor[w][1]) != bitRead(_MCP23017InputPinStates[q][1], _MCP23017TSensor[w][1])) {
+          //has the pin value changed since last read... if so trigger sensor
+          sendSensorUpdate(_MCP23017TSensor[w][2], bitRead(_MCP23017InputPinStates[q][0], _MCP23017TSensor[w][1]));
+        }
+      }
+    }
+    //update last read data now everything has been processed
+    _MCP23017InputPinStates[q][1] = _MCP23017InputPinStates[q][0];
+  }  //end for loop for reading data for chips
+
+}  //end function
+//this function will set an individual ipon to a new state
+void nowRail::MCP23017SetPinState(uint8_t boardAddr, uint16_t pin, byte state) {
+  uint16_t MCP23017PinStates;
+  uint8_t aPinStates;
+  uint8_t bPinStates;
+  MCP23017PinStates = MCP23017ReadPorts(boardAddr);
+  // Serial.print(boardAddr, HEX);
+  // Serial.print(" : ");
+  // Serial.print(MCP23017PinStates, BIN);
+  // Serial.print(" : ");
+  bitWrite(MCP23017PinStates, pin, state);  //update the pindata
+  // Serial.println(MCP23017PinStates, BIN);
+  // Serial.print(" S ");
+  // Serial.println(state);
+
+  aPinStates = MCP23017PinStates;
+  bPinStates = MCP23017PinStates >> 8;
+
+  Wire.beginTransmission(boardAddr);
+  Wire.write(0x12);        // address port A
+  Wire.write(aPinStates);  // value to send
+  Wire.endTransmission();
+
+  Wire.beginTransmission(boardAddr);
+  Wire.write(0x13);        // address port B
+  Wire.write(bPinStates);  // value to send
+  Wire.endTransmission();
+  // Serial.print("Proc: ");
+  // Serial.println(MCP23017ReadPorts(boardAddr),BIN);
+}
+
+//Sets the ports for all boards
+void nowRail::MCP23017SetPorts() {
+  uint16_t q;
+  uint16_t w;
+}
+
+#endif
+//sends a String message max 29 chars
+void nowRail::sendString(uint16_t StringNum, String sendString) {
+  memcpy(sendFifoBuffer[sendWriteFifoCounter], _transmissionPrefix, 10);           //set message prefix
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGELOWID] = sendWriteFifoCounter;       //MessageID
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGEHIGHID] = sendWriteHighFifoCounter;  //MessageID HIGH BYTE
+  sendFifoBuffer[sendWriteFifoCounter][MESSRESPONSE] = MESSRESPNOTREQ;             //no response required as non essential
+  sendFifoBuffer[sendWriteFifoCounter][MESSTRANSCOUNT] = 0;                        //0 as new message
+
+  sendFifoBuffer[sendWriteFifoCounter][MESSAGETYPE] = STRINGMESSAGE;            //text message
+  sendFifoBuffer[sendWriteFifoCounter][STRADDRHIGH] = (StringNum >> 8) & 0xFF;  //get High Byte
+  sendFifoBuffer[sendWriteFifoCounter][STRADDRLOW] = StringNum & 0xFF;
+  uint16_t sendStringLength;
+  uint8_t q;
+  sendStringLength = sendString.length();
+  for (q = 0; q < 29; q++) {
+    if (q < sendStringLength) {  //send next char
+      sendFifoBuffer[sendWriteFifoCounter][q + 18] = (int)sendString.charAt(q);
+      //  Serial.print(sendString.charAt(q));
+      //  Serial.print(" : ");
+      //  Serial.println((int)sendString.charAt(q));
+    } else {                                             //send NULL
+      sendFifoBuffer[sendWriteFifoCounter][q + 18] = 0;  //NULL sent
+      // Serial.print('#');//for serial output
+      // Serial.print(" : ");
+      // Serial.println('#');
+    }
+  }
+  incsendWriteFifoCounter();
+}
+
+//2_3_1 mod makes sure function is included when an item requires wire.h
+#if defined(MAXPCA9685SERVOBOARDS) || defined(MCP23017BOARDS) || defined(NOWDisc) || defined(GT911) 
+//2_3_0 mod, simplifies code and only starts wire once
+void nowRail::startWire() {
+  if (wireStart < 1) {
+#if defined(CUSTOM_SDA)
+    Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
+#else
+    Wire.begin();  //standard pins
+#endif
+    delay(100);
+    wireStart = 1;
+  }
+}
+#endif

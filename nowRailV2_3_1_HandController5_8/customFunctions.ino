@@ -1,5 +1,5 @@
-/*nowRailV2_1_2_HandControllerV5_7
-18/06/2026
+/*nowRailV2_3_1_HandControllerV5_8
+09/09/2026
 
    This tab contains custom functions that are called when nowrail receives commands.
    This allows users to write their own code driven by these events using the varibles passed.
@@ -178,18 +178,18 @@ void nowLocoDataSetRX() {
 //triggered by GT911 touch screen touches
 //Allows custom functions to be written from GT911 screen presses
 void nowGT911Touch(int xPos, int yPos) {
-  Serial.println("custom function nowGT911Touch");
-  Serial.print("xPos: ");
-  Serial.print(xPos);
-  Serial.print(" yPos: ");
-  Serial.println(yPos);
+  // Serial.println("custom function nowGT911Touch");
+  // Serial.print("xPos: ");
+  // Serial.print(xPos);
+  // Serial.print(" yPos: ");
+  // Serial.println(yPos);
 }
 
 //RFID data
 //void nowRFIDDataRec(uint8_t incomingData[], int len){
 void nowRFIDDataRec(uint8_t *incomingData, int len) {
-  Serial.print("RFID bytes received: ");
-  Serial.println(len);
+  // Serial.print("RFID bytes received: ");
+  // Serial.println(len);
 }
 
 //Other buttons or code--------------------------------------------
@@ -204,6 +204,12 @@ void nowMomentButton(void) {
   */
 }
 
+//This function is called when the MP3 busy pin signals that no track is playing 
+//AND there is not another track in a random list set to play
+void nowMP3TrackEnded(){
+  //Serial.println("MP3 track End");
+}
+
 //This function reports wifi channel updates
 void nowChannelUpdate(uint8_t channelNum, uint8_t channelState){ //channelNum = 1,6 or 11
   Serial.print("wifi channel num: ");
@@ -213,6 +219,14 @@ void nowChannelUpdate(uint8_t channelNum, uint8_t channelState){ //channelNum = 
   }else{
     Serial.println("This board changing to new wifi channel");
   }
+}
+
+//gets any strings that have been transmitted
+void nowStringRec(uint16_t StringNum,String recString){
+  // Serial.print("void nowStringRec StringNum: ");
+  // Serial.print(StringNum);
+  // Serial.print(" : ");
+  // Serial.println(recString);
 }
 //Example custom function
 
