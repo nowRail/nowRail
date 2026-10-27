@@ -1,5 +1,5 @@
-/*nowRailV2_4_4
-14/10/26
+/*nowRailV2_5_0_HandControllerV5_8
+26/10/2026
 */
 
 #pragma once
@@ -55,23 +55,21 @@
 // #define MP3INTERVALMAX 10000 //random time gaps max
 // #define MP3VOLUME 27  //default volume (volumes are 0-30)
 
-//Version 2_1_2 mods to prevent loop backs
+//Verion 2_1_2 mods to prevent loop backs
 //DCC Systems
-//Loop back prevention see See https://www.digitaltown.co.uk/nowRail.php#loopback
 #define MINSENDACCADDRESS 1
 #define MAXSENDACCADDRESS 2000
 //DCC EX Serial communication.............................................
-//WARNING Make sure SERIALRX2 and SERIALTX2 are uncommented in this file just below DIAGNOSTICS_ON 
-//Accessory command range MINSENDACCADDRESS to MAXSENDACCADDRESS
-// #define DCCEXSSERIAL2_ON //best done on ESP32 Dev Module Writes DCC EX instructions to Serial 2...for Serial2 connection to DCC EX
-// #define DCCEXSERIAL_ON  //best done on ESP32 Dev Module Writes DCC EX instruction to Serial ... for debugging
+//WARNING MAke sure SERIALRX2 and SERIALTX2 are uncommented in this file just below DIAGNOSTICS_ON 
+//#define DCCEXSSERIAL2_ON //best done on ESP32 Dev Module Writes DCC EX instructions to Serial 2...for Serial2 connection to DCC EX
+//#define DCCEXSERIAL_ON  //best done on ESP32 Dev Module Writes DCC EX instruction to Serial ... for debugging
 
 //NCE Cab bus..........................................................
 //See https://www.digitaltown.co.uk/nowRail.php#NCE
-//Accessory command range MINSENDACCADDRESS to MAXSENDACCADDRESS
-// #define CAB_BUS_ADDRESS 4 // This is the address on CAB BUS for the unit There are a limited number of addresses with the PowerCab
-// #define CAB_BUS_SHORTADDRON 0 //Loco Addresses 1-128 will be treated as Short Addresses, set to 0 for all LONG addresses
-// #define RS485ENABLLEPIN 4 //RS485 modules requires RX/TX at 9600 Baud and a transmit pin defined in this line 
+//Accessory command range 1-2000
+//#define CAB_BUS_ADDRESS 4 // This is the address on CAB BUS for the unit There are a limited number of addresses with the PowerCab
+//#define CAB_BUS_SHORTADDRON 0 //Loco Addresses 1-128 will be treated as Short Addresses, set to 0 for all LONG addresses
+//#define RS485ENABLLEPIN 4 //RS485 modules requires RX/TX at 9600 Baud and a transmit pin defined in this line 
 
 //JMRI.....................................................................
 //See https://youtu.be/5YLXue_GavU
@@ -85,11 +83,8 @@
 //DCC Decoder mode... reads accessory commands from any DCC system and sends them over nowRail
 //#define DCCDECODERPIN 4 //If board is being used as a DCC decoder this is the interrupt pin
 //#define ONEBITTIME 130  // If your DCC system does not work you can change this value. NCE systems and DCCEX seem to work between 130 - 180
-//Settings to allow the address range received to be limited to stop loop backs
-//see See https://www.digitaltown.co.uk/nowRail.php#loopback
 #define MINRECACCADDRESS 1
 #define MAXRECACCADDRESS 2100
-
 //I2C Devices...........................................................
 
 //All I2C devices need the Wire.h uncommented
@@ -112,14 +107,15 @@
 //For servos see https://youtu.be/khPnUbnIN88
 //For LEDs see https://youtu.be/xKgqPWWVrK8
 //used for Servos and LED's NOTE: LED's and servos CANNOT be on the same board address
-//#define MAXPCA9685SERVOBOARDS 1 //default is 1, increase if required
+//#define MAXPCA9685SERVOBOARDS 5 //default is 1, increase if required
 #define SERVOMIN 450    //servo min value
 #define SERVOMAX 2000   //servo max value
-//see https://www.digitaltown.co.uk/nowRail.php#PCA9685Servo for more information
-#define PCA9685SERVODETACH 1500 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
-//See https://www.digitaltown.co.uk/nowRail.php#PCA9685Led for more information
+//Added in version 1.9.0 
 #define PCA9685FLASHTIMER 1000 //any flashing PCS 9685 panel LED or accessory Leds flash timing in milliseconds
-#define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode
+//1.9.1
+#define PCA9685SERVODETACH 600 //if uncommented will detach a PCA9685 servo 600 ms (0.6 seconds) after it's last movement. Change value to suit
+//1.9.3
+#define PCA9685LEDOPENDRAIN 1 //will set boards driving oleds to open drain mode and invert signal to retain effects
 
 //MCP23017 chips/modules
 //See http://localhost/DigitalTown/nowRail.php#MCP23017 and https://youtu.be/7n4znzaACJE for more information

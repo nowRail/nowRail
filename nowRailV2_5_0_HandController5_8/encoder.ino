@@ -1,5 +1,5 @@
-/*nowRailV2_3_1_HandControllerV5_8
-09/09/2026
+/*nowRailV2_5_0_HandControllerV5_8
+26/10/2026
 */
 const int encButton = 25;
 const int encLeft = 26;

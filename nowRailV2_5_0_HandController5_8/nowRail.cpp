@@ -1,9 +1,9 @@
-/*nowRailV2_4_4
-14/10/26
+/*nowRailV2_5_0_HandControllerV5_8
+26/10/2026
 */
 #include "Arduino.h"
 #include "nowRail.h"
-
+//uint16_t testCounter;
 uint8_t broadcastAddress[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };  //broadcast to all boards
 
 byte recWriteFifoCounter;
@@ -67,7 +67,6 @@ void nowRail::addDelayedAccTrigger(int triggerAccNum, byte triggerAccDir, int de
 //1.4.2  only runs if WIFIMASTERCLOCKCHANGE defined
 #if defined(WIFIMASTERCLOCKCHANGE)
 void nowRail::changeWifiChannel(byte newChannel) {
-  //new channel must have a value of 1,6 or 11
   if (newChannel == 1 || newChannel == 6 || newChannel == 11) {
     memcpy(sendFifoBuffer[sendWriteFifoCounter], _transmissionPrefix, 10);
     sendFifoBuffer[sendWriteFifoCounter][MESSRESPONSE] = MESSRESPNOTREQ;  //Cannot be responded to because channel will change
@@ -111,8 +110,8 @@ void nowRail::add74HC595NPPanelLed(int chip, int pin, int accNum, int dir) {
 //stdPanelLED
 // int _StdPanelLed[20][2];//only 20 allowed...not many pins
 //   int _StdPanelLedCount;//keeps track of how many stdPanelLed's have been added
-void nowRail::addStdPanelLed(uint16_t pin, uint16_t accNum, byte dir) {//changed to uint16_t pin, uint16_t accNum, byte dir 2_4_4
-  if (_StdPanelLedCount < 20) {  //max std pins is 20
+void nowRail::addStdPanelLed(uint16_t pin, uint16_t accNum, byte dir) {  //changed to uint16_t pin, uint16_t accNum, byte dir 2_4_4
+  if (_StdPanelLedCount < 20) {                                          //max std pins is 20
     _StdPanelLed[_StdPanelLedCount][0] = pin;
     _StdPanelLed[_StdPanelLedCount][1] = accNum;
     _StdPanelLed[_StdPanelLedCount][2] = dir;
@@ -1751,14 +1750,14 @@ void nowRail::checkRecFifo(void) {
 
 
 
-              
+
             }  //end of if acc below 2001
             //             //call the accessory command function
             //
             if (nowAccComRec)
               nowAccComRec(accNum, accInst);
             if (sdAccCommands)
-              sdAccCommands(accNum, accInst,_currentMillis);//2_4_4 SD Card mods
+              sdAccCommands(accNum, accInst, _currentMillis);                   //2_4_4 SD Card mods
             for (q = 0; q < _stdPinAccCount; q++) {                             //work through all built in accs
               if (_stdPinAcc[q][1] == accNum && _stdPinAcc[q][2] == accInst) {  //if this is the right acc and direction/instruction
                 //Now process it
@@ -1894,7 +1893,7 @@ void nowRail::checkRecFifo(void) {
               }
               nowRail::sendPanelUpdate(accNum, accInst);
             }
-            
+
             break;
           case PANELUPDATE:
             accNum = (recFifoBuffer[recReadFifoCounter][ACCADDRHIGH] * 256) + recFifoBuffer[recReadFifoCounter][ACCADDRLOW];
@@ -2118,13 +2117,13 @@ void nowRail::checkRecFifo(void) {
             //send DCC loco func command
 #if defined(DCCEXSSERIAL2_ON)
             Serial2.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
-            
+
 #endif
             //serial print DCC loco func command
 #if defined(DCCEXSERIAL_ON)  //SEND the same command over Serial \
                              //if (funcNum > 28) {
             Serial.println("<F " + String(locoAddr) + " " + String(funcNum) + " " + String(funcState) + " >");
-            
+
 #endif
 
 #if defined(CAB_BUS_ADDRESS)  //if CABBUS send NCE
@@ -2202,8 +2201,8 @@ void nowRail::checkRecFifo(void) {
             senInst = recFifoBuffer[recReadFifoCounter][SENINST];
             if (nowSensorUpdate)
               nowSensorUpdate(senNum, senInst);
-            if(sdSensCommands)
-              sdSensCommands(senNum, senInst);//2_4_4 SD card mod
+            if (sdSensCommands)
+              sdSensCommands(senNum, senInst);  //2_4_4 SD card mod
 #if defined(JMRICMRI)
             nowRail::jmriCmriUpdateSendBuffer(senNum, senInst);
             sendMessResp();
@@ -2245,24 +2244,30 @@ void nowRail::checkRecFifo(void) {
 #endif
             break;
           case LOCOBULKDATATX:  //10 transmission of all locos data
-
+          //  Serial.println(testCounter);
+          //   testCounter++;
             if (_locoBulkDataRXFlag > 0 && _locoBulkDataRXPos < 200) {  //receive mode...valid slot and set to receive
               for (q = 0; q < 32; q++) {
                 _locoData[_locoBulkDataRXPos][q] = recFifoBuffer[recReadFifoCounter][q + 16];
               }
-#if defined(NOWDisc)
-              locoEEPROMUpdate(_locoBulkDataRXPos);
-#endif
               _locoBulkDataRXPos++;
               if (_locoBulkDataRXPos > 199) {  //if full set received
-                if (nowLocoDataSetRX)          //if the custom function is out there
+              //now update the eeprom
+#if defined(NOWDisc) //modded in version 2_5_0 to allow faster processing of incoming commands by writing to eeprom after
+              Serial.println("LOCODATATX: UPDATING EEPROM");
+              for(q=0;q<200;q++){
+               locoEEPROMUpdate(q);
+              }
+              Serial.println("LOCODATATX: EEPROM UPDATED");
+#endif
+                  if (nowLocoDataSetRX)          //if the custom function is out there
                   nowLocoBulkDataRX();
               }
             }
 
 
 #if defined(DIAGNOSTICS_ON)
-            Serial.println("DIAG> LOCOBULKDATATX: ");
+            Serial.println("DIAG> LOCOBULKDATATX: " + String(_locoBulkDataRXPos));
 #endif
             break;
           case WIFICHANNELCMD:  //11 transmission of all locos data
@@ -2295,7 +2300,7 @@ void nowRail::checkRecFifo(void) {
             uint8_t sendRFIDDataBytes[30];
             if (nowRFIDDataRec)  //custom function
 
-            memcpy(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter] + RFIDDATASTART, recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
+              memcpy(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter] + RFIDDATASTART, recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
             // nowRFIDDataRec( sendRFIDDataBytes,recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
             //nowRFIDDataRec(uint8_t *incomingData, int len)
             nowRFIDDataRec(sendRFIDDataBytes, recFifoBuffer[recReadFifoCounter][RFIDNUMBYTES]);
@@ -2307,12 +2312,12 @@ void nowRail::checkRecFifo(void) {
             ansenValue = ((int32_t)recFifoBuffer[recReadFifoCounter][18] << 24) + ((int32_t)recFifoBuffer[recReadFifoCounter][19] << 16) + ((int32_t)recFifoBuffer[recReadFifoCounter][20] << 8) + (int32_t)recFifoBuffer[recReadFifoCounter][21];
             if (nowSensorUpdate)
               nowSensorUpdate(senNum, ansenValue);
-            if(sdSensCommands)
-              sdSensCommands(senNum, ansenValue);//2_4_4 SD card mod
-              //1.8.3
-              // if(_senProcessed > 0){  //if updated in nowSensorUpdate
-              //  sendMessResp();
-              // }
+            if (sdSensCommands)
+              sdSensCommands(senNum, ansenValue);  //2_4_4 SD card mod
+                                                   //1.8.3
+                                                   // if(_senProcessed > 0){  //if updated in nowSensorUpdate
+                                                   //  sendMessResp();
+                                                   // }
 #if defined(DCCEXSSERIAL2_ON)
             _DCCEXCommand = "<z " + String(senNum) + " " + String(ansenValue) + " >";
             if (ansenValue > -1 && ansenValue < 32768) {  //make sure value within DCC EX limits
@@ -2380,87 +2385,7 @@ void nowRail::checkRecFifo(void) {
             /* Method
 A loco is set to the current loco in use and then added to the consist but each loco needs to be set to current loco
 */
-            // #if defined(CAB_BUS_ADDRESS)
-
-            // //set consist address as lead loco
-            // _nceCommandBytes[_nceCommandBytesWrite][0] = consistLocoArray[0] >> 8;
-            // _nceCommandBytes[_nceCommandBytesWrite][1] = consistLocoArray[0];//
-            // _nceCommandBytes[_nceCommandBytesWrite][2] = 0x00;  //make current loco
-            // _nceCommandBytes[_nceCommandBytesWrite][3] = 0x00; //make current loco
-            // _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            // _nceCommandBytesWrite++;
-            // //lead loco
-            // _nceCommandBytes[_nceCommandBytesWrite][0] = consistLocoArray[0] >> 8;  //loco address high byte
-            // _nceCommandBytes[_nceCommandBytesWrite][1] = consistLocoArray[0];       //loco address low byte
-            // _nceCommandBytes[_nceCommandBytesWrite][2] = 0x0b;  //forward lead loco
-            // _nceCommandBytes[_nceCommandBytesWrite][3] = consistAddress; //consist address
-            // _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            // _nceCommandBytesWrite++;
-            // //centre locos
-            // int16_t consLoco;
-
-            // for(q=1;q<(numCLocos - 1);q++){//last loco is the rear loco
-            //   if(consistLocoArray[q] < 0){
-            //     consLoco = consistLocoArray[q] * -1;//make positive
-            //   }else{
-            //     consLoco = consistLocoArray[q];
-            //   }
-            //   Serial.println(consistLocoArray[q]);
-            //   Serial.println(consLoco);
-            //   _nceCommandBytes[_nceCommandBytesWrite][0] = consLoco >> 8;
-            //   _nceCommandBytes[_nceCommandBytesWrite][1] = consLoco;//
-            //   _nceCommandBytes[_nceCommandBytesWrite][2] = 0x00;  //make current loco
-            //   _nceCommandBytes[_nceCommandBytesWrite][3] = 0x00; //make current loco
-            //   _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            //   _nceCommandBytesWrite++;
-
-            //   _nceCommandBytes[_nceCommandBytesWrite][0] = consLoco >> 8;  //loco address high byte
-            //   _nceCommandBytes[_nceCommandBytesWrite][1] = consLoco;       //loco address low byte
-            //   if(consistLocoArray[q] < 0){
-            //     _nceCommandBytes[_nceCommandBytesWrite][2] = 0x0e;  //reverse consist loco
-            //   }else{
-            //     _nceCommandBytes[_nceCommandBytesWrite][2] = 0x0f;  //forward consist loco;
-            //   }
-            //   _nceCommandBytes[_nceCommandBytesWrite][3] = consistAddress; //consist address
-            //   _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            //   _nceCommandBytesWrite++;
-            // }
-            // //now for the rear loco
-            // Serial.println("Last Loco");
-            // if(consistLocoArray[numCLocos - 1] < 0){
-            //     consLoco = consistLocoArray[numCLocos - 1] * -1;//make positive
-            //   }else{
-            //     consLoco = consistLocoArray[numCLocos - 1];
-            //   }
-            //   Serial.println(consistLocoArray[q]);
-            //   Serial.println(consLoco);
-            //   _nceCommandBytes[_nceCommandBytesWrite][0] = consLoco >> 8;
-            //   _nceCommandBytes[_nceCommandBytesWrite][1] = consLoco;//
-            //   _nceCommandBytes[_nceCommandBytesWrite][2] = 0x00;  //make current loco
-            //   _nceCommandBytes[_nceCommandBytesWrite][3] = 0x00; //make current loco
-            //   _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            //   _nceCommandBytesWrite++;
-
-            //   _nceCommandBytes[_nceCommandBytesWrite][0] = consLoco >> 8;  //loco address high byte
-            //   _nceCommandBytes[_nceCommandBytesWrite][1] = consLoco;       //loco address low byte
-            //   if(consistLocoArray[numCLocos - 1] < 0){
-            //     _nceCommandBytes[_nceCommandBytesWrite][2] = 0x0c;  //reverse rear consist loco
-            //   }else{
-            //     _nceCommandBytes[_nceCommandBytesWrite][2] = 0x0d;  //forward rear consist loco;
-            //   }
-            //   _nceCommandBytes[_nceCommandBytesWrite][3] = consistAddress; //consist address
-            //   _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            //   _nceCommandBytesWrite++;
-
-            // //make 1st loco current again
-            // _nceCommandBytes[_nceCommandBytesWrite][0] = consistLocoArray[0] >> 8;
-            // _nceCommandBytes[_nceCommandBytesWrite][1] = consistLocoArray[0];//
-            // _nceCommandBytes[_nceCommandBytesWrite][2] = 0x00;  //make current loco
-            // _nceCommandBytes[_nceCommandBytesWrite][3] = 0x00; //make current loco
-            // _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            // _nceCommandBytesWrite++;
-
-            // #endif
+            
             break;
           case UNSETCONSIST:  //unset a consist either with EX RAIL or CAB BUS
 
@@ -2477,90 +2402,15 @@ A loco is set to the current loco in use and then added to the consist but each 
 #if defined(DCCEXSERIAL_ON)  //SEND the command over Serial
             Serial.println(DCCString);
 #endif
-            // #if defined(CAB_BUS_ADDRESS)
-            //             //ste lead loco as current
-
-            //             _nceCommandBytes[_nceCommandBytesWrite][0] = consistLocoArray[0] >> 8;
-            //             _nceCommandBytes[_nceCommandBytesWrite][1] = consistLocoArray[0];//
-            //             _nceCommandBytes[_nceCommandBytesWrite][2] = 0x00;  //make current loco
-            //             _nceCommandBytes[_nceCommandBytesWrite][3] = 0x00; //make current loco
-            //             _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            //             _nceCommandBytesWrite++;
-            //             //kill consist
-            //              _nceCommandBytes[_nceCommandBytesWrite][0] = consistLocoArray[0] >> 8;
-            //             _nceCommandBytes[_nceCommandBytesWrite][1] = consistLocoArray[0];//
-            //             _nceCommandBytes[_nceCommandBytesWrite][2] = 0x11;  //Kill consist
-            //             _nceCommandBytes[_nceCommandBytesWrite][3] = consistAddress; //consist address
-            //             _nceCommandBytes[_nceCommandBytesWrite][4] = _nceCommandBytes[_nceCommandBytesWrite][0] ^ _nceCommandBytes[_nceCommandBytesWrite][1] ^ _nceCommandBytes[_nceCommandBytesWrite][2] ^ _nceCommandBytes[_nceCommandBytesWrite][3];
-            //             _nceCommandBytesWrite++;
-
-
-
-            // #endif
+            
             break;
           case STDLOCOFUNCTION:  //Standard loco function for nowRail and DCC EX NOT NCE
-            // byte funcNum;
-            // byte funcState;
-            // byte funcValue;
-            // byte secondFuncByte;
-            //byte nceFuncGroup;  //for byte 3
-            //byte nceFuncData;   //for byte 4
-            //int w;
-            //0.7.2 mod
-            //byte locoFunctStates[64];  //added in v7_2 to prep for NCE
-            //byte funcCounter;
-            //String funcFirstString;
-            // for (q = 20; q < 28; q++) {
-            //   //Serial.println(recFifoBuffer[recReadFifoCounter][q],BIN);
-            //   for (w = 0; w < 8; w++) {
-            //     locoFunctStates[funcCounter] = bitRead(recFifoBuffer[recReadFifoCounter][q], w);
-            //     funcCounter++;
-            //   }
-            // }
+            
 
             locoAddr = (recFifoBuffer[recReadFifoCounter][LOCOADDRHIGH] * 256) + recFifoBuffer[recReadFifoCounter][LOCOADDRLOW];
             funcNum = recFifoBuffer[recReadFifoCounter][LOCOFUNC];
             funcState = recFifoBuffer[recReadFifoCounter][LOCOFUNCSTATE];
-            // Serial.println("states");
-            // for(q=0;q<64;q++){
-            //   Serial.print(q);
-            //   Serial.print(" : ");
-            //   Serial.println(locoFunctStates[q]);
-            // }
-
-            // switch (funcNum) {
-            //   case 0 ... 4:
-            //     funcValue = 128 + locoFunctStates[1] + (locoFunctStates[2] * 2) + (locoFunctStates[3] * 4) + (locoFunctStates[4] * 8) + (locoFunctStates[0] * 16);
-            //     nceFuncData = locoFunctStates[1] + (locoFunctStates[2] * 2) + (locoFunctStates[3] * 4) + (locoFunctStates[4] * 8) + (locoFunctStates[0] * 16);
-            //     nceFuncGroup = 0x07;
-            //     break;
-            //   case 5 ... 8:
-            //     funcValue = 176 + locoFunctStates[5] + (locoFunctStates[6] * 2) + (locoFunctStates[7] * 4) + (locoFunctStates[8] * 8);
-            //     nceFuncData = locoFunctStates[5] + (locoFunctStates[6] * 2) + (locoFunctStates[7] * 4) + (locoFunctStates[8] * 8);
-            //     nceFuncGroup = 0x08;
-            //     break;
-            //   case 9 ... 12:
-            //     funcValue = 160 + locoFunctStates[9] + (locoFunctStates[10] * 2) + (locoFunctStates[11] * 4) + (locoFunctStates[12] * 8);
-            //     nceFuncData = locoFunctStates[9] + (locoFunctStates[10] * 2) + (locoFunctStates[11] * 4) + (locoFunctStates[12] * 8);
-            //     nceFuncGroup = 0x09;
-            //     break;
-            //   case 13 ... 20:
-            //     funcValue = locoFunctStates[13] + (locoFunctStates[14] * 2) + (locoFunctStates[15] * 4) + (locoFunctStates[16] * 8) + (locoFunctStates[17] * 16) + (locoFunctStates[18] * 32) + (locoFunctStates[19] * 64) + (locoFunctStates[20] * 128);
-            //     secondFuncByte = 222;
-            //     nceFuncData = funcValue;
-            //     nceFuncGroup = 0x15;
-            //     break;
-            //   case 21 ... 28:
-            //     funcValue = locoFunctStates[21] + (locoFunctStates[22] * 2) + (locoFunctStates[23] * 4) + (locoFunctStates[24] * 8) + (locoFunctStates[25] * 16) + (locoFunctStates[26] * 32) + (locoFunctStates[27] * 64) + (locoFunctStates[28] * 128);
-            //     secondFuncByte = 223;
-            //     nceFuncData = funcValue;
-            //     nceFuncGroup = 0x16;
-            //     break;
-
-            //   default:
-            //     break;
-            // }
-            //end 0.7.2 mod
+            
 
 
 
@@ -2741,28 +2591,31 @@ void nowRail::runLayout(void) {
     sdCoreProcess(_currentMillis);  //external SD Card addon core Process...runs if exists 2_4_3 addition
 
 #if defined(WIFIMASTERCLOCKCHANGE)
+
   if (_currentMillis - _lastWIFIMillis >= _lastWIFITimer) {
     //   byte _currentWIFIChannel = 1;
     // unsigned long _lastWIFIMillis;
     // unsigned long _lastWIFITimer = 5000;
-    switch (_currentWIFIChannel) {
-      case 1:
-        _currentWIFIChannel = 6;
-        break;
-      case 6:
-        _currentWIFIChannel = 11;
-        break;
-      case 11:
-        _currentWIFIChannel = 1;
-        break;
+    if (_locoBulkDataRXFlag < 1) {
+      switch (_currentWIFIChannel) {
+        case 1:
+          _currentWIFIChannel = 6;
+          break;
+        case 6:
+          _currentWIFIChannel = 11;
+          break;
+        case 11:
+          _currentWIFIChannel = 1;
+          break;
+      }
+      nowChannelUpdate(_currentWIFIChannel, 1);  //2.0.1 update
+      Serial.println("Looking for MASTERCLOCK... Is it turned on?");
+      Serial.println("Is layout ID correct?");
+      Serial.println("Layout ID :" + getnowRailAddr() + " Trying WiFi Channel: " + String(_currentWIFIChannel));
+      Serial.println("  ");
+      WiFi.setChannel(_currentWIFIChannel);  //change to next channel
     }
-    nowChannelUpdate(_currentWIFIChannel, 1);  //2.0.1 update
-    Serial.println("Looking for MASTERCLOCK... Is it turned on?");
-    Serial.println("Is layout ID correct?");
-    Serial.println("Layout ID :" + getnowRailAddr() + " Trying WiFi Channel: " + String(_currentWIFIChannel));
-    Serial.println("  ");
-    WiFi.setChannel(_currentWIFIChannel);  //change to next channel
-    _lastWIFIMillis = _currentMillis;      //reset to try again
+    _lastWIFIMillis = _currentMillis;  //reset to try again
   }
 #endif
 #if defined(NOWDisc)
@@ -3112,12 +2965,6 @@ void nowRail::addGT911Screen(int GT911ResetPin, int GT911IntPin) {
   _GT911_INT = GT911IntPin;      //CTP  INT
   _addr = GT911;
   uint8_t re = 0;
-  // #if defined(CUSTOM_SDA)
-  //   Wire.begin(CUSTOM_SDA, CUSTOM_SCL);  //custom pins
-  // #else
-  //   Wire.begin();        //standard pins
-  // #endif
-  //   delay(100);
   startWire();  //2_3_0 mod
   pinMode(_GT911_RESET, OUTPUT);
   pinMode(_GT911_INT, OUTPUT);
@@ -3414,12 +3261,6 @@ void nowRail::setLocoDCCFuncState(byte locoID, byte funcNum, byte funcState) {
     } else {
       bitSet(_locoData[locoID][funcArrayByte], funcNum);
     }
-    //   Serial.print("locoID ");
-    // Serial.println(locoID);
-    // Serial.print("funcNum ");
-    // Serial.println(sendFuncNum);
-    // Serial.print("funcState ");
-    // Serial.println(funcState);
     nowRail::sendDCCLocoFunc(locoID, dccAddress, sendFuncNum, funcState);  //order changed for NCE system
 #if defined(NOWDisc)
     nowRail::locoEEPROMUpdate(locoID);
@@ -3489,6 +3330,7 @@ void nowRail::locoTXAllLocoData() {
       sendFifoBuffer[sendWriteFifoCounter][q + 16] = _locoData[w][q];
     }
     nowRail::incsendWriteFifoCounter();  //new function to add highbyte to messageID
+    delayMicroseconds(750);//2_5_0 mod for sd card add in small delay before loading next item 
   }
 }
 

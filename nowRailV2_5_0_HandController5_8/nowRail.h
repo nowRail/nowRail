@@ -1,5 +1,5 @@
-/*nowRailV2_3_1
-22/08/26
+/*nowRailV2_5_0_HandControllerV5_8
+26/10/2026
   */
 
 #ifndef nowRail_h  //header guard to stop it being imported twice
@@ -217,7 +217,7 @@ public:
   void addGT911Button(int xPos, int yPos, int accNum, int press1, int press2);  //Adds std pin accessories to system
 #endif
   void sendPowerCommand(byte Command, int dccAddr, byte dccSpeed, byte dccDir);  //sends commands to base stations/controllers  POWEROFF 0 POWERON 1 EMERGENCYSTOP 2
-  void addStdPanelLed(int pin, int accNum, int dir);                             //Adds a panel LED connected directly to a board pin...pin goes HIGH when triggered
+  void addStdPanelLed(uint16_t pin, uint16_t accNum, byte dir); //changed from int to uint16_t 2_4_4 Adds a panel LED connected directly to a board pin...pin goes HIGH when triggered
 
   void accProcessed(byte processed);
   void stdLocoFunction(int dccAddr, byte funcNum, byte funcState);  //Standard method to send loco function for nowRail and DCC EX...NOT NCE CAB BUS 2_1_2 mod
@@ -504,7 +504,7 @@ uint8_t _MCP23017PanelFlashState;
 #endif
 
   //Panel std buttons addStdPanelLed(int accNum, int dir)
-  int _StdPanelLed[20][3];  //only 20 allowed...pin accNUm Dir
+  uint16_t _StdPanelLed[20][3];  //only 20 allowed...pin accNUm Dir
   int _StdPanelLedCount;    //keeps track of how many stdPanelLed's have been added
 
   //power commands
@@ -648,6 +648,14 @@ extern "C" {
   extern void nowChannelUpdate(uint8_t channelNum, uint8_t channelState) __attribute__((weak)); 
   extern void nowMP3TrackEnded() __attribute__((weak)); //2.2.1 addition
   extern void nowStringRec(uint16_t StringNum,String recString) __attribute__((weak)); //2_3_0 addition
+  //Sd card additions for 2_4_4 external SD Add on
+  extern void sdsetup() __attribute__((weak)); //calls the setup 2_4_3 addition
+  extern void sdTimeUpdate(byte clockHour, byte clockMin, byte clockSecond, byte clockDay) __attribute__((weak)); //Passes times over for timed accessory and timetables stuff 2_4_3 addition
+  extern void sdCoreProcess(uint32_t sdMillis) __attribute__((weak)); //allows animtaion sequences to be called and run 2_4_3 addition
+  extern void sdAccCommands(uint16_t accNum, uint16_t accInst, uint32_t accMillis) __attribute__((weak));//allows for accessory driven animations to be started 2_4_3
+  extern void sdSensCommands(uint16_t senNum, uint16_t senInst) __attribute__((weak));//allows for sensor driven animations to be started 2_4_3
+
+
 #if defined(__cplusplus)
 }
 #endif

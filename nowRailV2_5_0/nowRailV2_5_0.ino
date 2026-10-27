@@ -1,7 +1,13 @@
-/*nowRailV2_3_1_HandControllerV5_8
-09/09/2026
+/*nowRailV2_5_0_HandControllerV5_8
+26/10/2026
 
-HandControllerV5_8 adds adjustable speed ranges
+2_5_0 mods/fixes
+
+Mods to transmitting and receiving Loco Bulk Data commands (LOCOBULKDATATX)
+mods improve receive processing speed with all eeprom writes done after receipt.
+
+Transmission mod made in locoTXAllLocoData() adds 750 microsecond delay to stabilise send commands and prevent buffer overun
+Can happen when using button to trigger.
 
 
 MIT License
@@ -38,6 +44,7 @@ nowRail myLayout(0x00, 0x01, 0x02, 0x03);
 #include "FT6236.h"
 TFT_eSPI tft = TFT_eSPI();  // Invoke custom library with default width and height
 FT6236 ts = FT6236();
+
 
 //Fonts
 #include "Free_Fonts.h" // Include the header file attached to this sketch
